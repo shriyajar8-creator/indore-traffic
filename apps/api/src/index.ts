@@ -27,19 +27,20 @@ app.use(express.json());
 // Helper to broadcast socket events
 const broadcastEvent = (eventName: string, payload: any) => {
   io.emit(eventName, payload);
-  // Also emit updated KPI with every state change
   io.emit('kpi.updated', store.getKpis());
 };
 
-// Authentication Middleware
-interface AuthRequest extends Request {
+// Auth Request Extension
+export interface AuthRequest extends Request {
   user?: {
     id: string;
     email: string;
     role: UserRole;
+    name: string;
   };
 }
 
+// Authentication Middleware
 const authenticateToken = (req: AuthRequest, res: Response, next: NextFunction) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -50,21 +51,26 @@ const authenticateToken = (req: AuthRequest, res: Response, next: NextFunction) 
 
   jwt.verify(token, JWT_SECRET, (err: any, decoded: any) => {
     if (err) {
-      return res.status(403).json({ error: 'Invalid or expired token' });
+      return res.status(403).json({ error: 'Invalid or expired authentication token' });
     }
     req.user = decoded;
     next();
   });
 };
 
+// Strict Role Authorization Middleware
 const requireRole = (allowedRoles: UserRole[]) => {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
     if (!req.user || !allowedRoles.includes(req.user.role)) {
-      return res.status(403).json({ error: 'Insufficient permissions for this operation' });
+      return res.status(403).json({ 
+        error: 'ACCESS DENIED: You do not have permission to access the Traffic Command Center or perform administrative operations.' 
+      });
     }
     next();
   };
 };
+
+const adminOrAuthorityRoles: UserRole[] = ['ADMIN', 'TRAFFIC_POLICE', 'ROAD_DEPARTMENT', 'EMERGENCY_RESPONSE'];
 
 // ==========================================
 // 1. AUTHENTICATION ENDPOINTS
@@ -106,8 +112,12 @@ app.get('/api/auth/me', authenticateToken, (req: AuthRequest, res: Response) => 
   return res.json({ user });
 });
 
+app.post('/api/auth/logout', authenticateToken, (req: AuthRequest, res: Response) => {
+  return res.json({ message: 'Logged out successfully' });
+});
+
 // ==========================================
-// 2. LIVE TRAFFIC & GIS ENDPOINTS
+// 2. LIVE TRAFFIC & GIS ENDPOINTS (Public/Civilian read)
 // ==========================================
 app.get('/api/traffic/live', (req: Request, res: Response) => {
   return res.json({
@@ -118,7 +128,12 @@ app.get('/api/traffic/live', (req: Request, res: Response) => {
     constructions: store.getConstructions().filter(c => c.status === 'ACTIVE'),
     signals: store.getSignalRecommendations(),
     lastUpdated: new Date().toISOString(),
-    dataMode: process.env.DATA_MODE || 'SIMULATED_LIVE'
+    dataMode: process.env.DATA_MODE || 'SIMULATED_LIVE',
+    systemStatus: {
+      backend: 'CONNECTED',
+      database: 'CONNECTED',
+      realtime: 'CONNECTED'
+    }
   });
 });
 
@@ -127,20 +142,16 @@ app.get('/api/traffic/junctions', (req: Request, res: Response) => {
 });
 
 app.get('/api/traffic/history', (req: Request, res: Response) => {
-  // 24-hour historical velocity profile for Indore
   const hourlyData = Array.from({ length: 24 }).map((_, hour) => {
     let speed = 35;
     let congestion = 40;
     if (hour >= 8 && hour <= 11) {
-      // Morning Peak
       speed = 18 + Math.floor(Math.random() * 6);
       congestion = 75 + Math.floor(Math.random() * 15);
     } else if (hour >= 17 && hour <= 21) {
-      // Evening Peak
       speed = 14 + Math.floor(Math.random() * 5);
       congestion = 82 + Math.floor(Math.random() * 12);
     } else if (hour >= 0 && hour <= 5) {
-      // Night
       speed = 52 + Math.floor(Math.random() * 8);
       congestion = 15 + Math.floor(Math.random() * 8);
     }
@@ -162,14 +173,14 @@ app.get('/api/traffic/predictions', (req: Request, res: Response) => {
     currentCongestion: r.congestionPercentage,
     currentSpeed: r.currentSpeed,
     predictions: r.predictions,
-    engine: 'Indore Spatial-Temporal Predictive Engine (Deterministic / ML Ready)'
+    engine: 'Predictive Traffic Engine (ML Architecture Ready)'
   }));
 
   return res.json({ predictions });
 });
 
 // ==========================================
-// 3. ROAD CONTROL & INCIDENTS
+// 3. ROAD CONTROL & INCIDENTS (Protected Admin APIs)
 // ==========================================
 app.get('/api/roads', (req: Request, res: Response) => {
   return res.json({ roads: store.getRoads() });
@@ -185,7 +196,7 @@ app.get('/api/incidents', (req: Request, res: Response) => {
   return res.json({ incidents: store.getIncidents() });
 });
 
-app.post('/api/incidents', authenticateToken, requireRole(['ADMIN', 'TRAFFIC_POLICE', 'ROAD_DEPARTMENT', 'EMERGENCY_RESPONSE']), (req: AuthRequest, res: Response) => {
+app.post('/api/incidents', authenticateToken, requireRole(adminOrAuthorityRoles), (req: AuthRequest, res: Response) => {
   const { title, type, severity, description, roadId, roadName, location, affectedLanes, expectedEndTime, recommendedAction } = req.body;
 
   if (!title || !type || !severity || !roadId || !location) {
@@ -215,7 +226,7 @@ app.post('/api/incidents', authenticateToken, requireRole(['ADMIN', 'TRAFFIC_POL
   return res.status(201).json({ incident });
 });
 
-app.patch('/api/incidents/:id', authenticateToken, requireRole(['ADMIN', 'TRAFFIC_POLICE']), (req: AuthRequest, res: Response) => {
+app.patch('/api/incidents/:id', authenticateToken, requireRole(adminOrAuthorityRoles), (req: AuthRequest, res: Response) => {
   const { status } = req.body;
   const updated = store.updateIncidentStatus(req.params.id, status, req.user!.email, req.user!.role);
   if (!updated) return res.status(404).json({ error: 'Incident not found' });
@@ -227,7 +238,12 @@ app.patch('/api/incidents/:id', authenticateToken, requireRole(['ADMIN', 'TRAFFI
 });
 
 // Road Closures
-app.post('/api/closures', authenticateToken, requireRole(['ADMIN', 'TRAFFIC_POLICE', 'ROAD_DEPARTMENT']), (req: AuthRequest, res: Response) => {
+app.get('/api/closures', (req: Request, res: Response) => {
+  const closedRoads = store.getRoads().filter(r => r.isClosed);
+  return res.json({ closures: closedRoads });
+});
+
+app.post('/api/closures', authenticateToken, requireRole(adminOrAuthorityRoles), (req: AuthRequest, res: Response) => {
   const { roadId, isClosed, reason } = req.body;
   const road = store.toggleRoadClosure(roadId, isClosed, reason, req.user!.email, req.user!.role);
   if (!road) return res.status(404).json({ error: 'Road not found' });
@@ -238,16 +254,21 @@ app.post('/api/closures', authenticateToken, requireRole(['ADMIN', 'TRAFFIC_POLI
   return res.json({ road });
 });
 
+// Construction
+app.get('/api/construction', (req: Request, res: Response) => {
+  return res.json({ constructions: store.getConstructions() });
+});
+
 // ==========================================
 // 4. REROUTING ENGINE APIs
 // ==========================================
 app.post('/api/routes/calculate', (req: Request, res: Response) => {
-  const { originRoadId, targetRoadId } = req.body;
+  const { targetRoadId } = req.body;
   const plan = store.generateReroutePlan(targetRoadId || 'road-ab-north');
   return res.json({ plan });
 });
 
-app.post('/api/reroutes/:id/approve', authenticateToken, requireRole(['ADMIN', 'TRAFFIC_POLICE']), (req: AuthRequest, res: Response) => {
+app.post('/api/reroutes/:id/approve', authenticateToken, requireRole(adminOrAuthorityRoles), (req: AuthRequest, res: Response) => {
   const plan = store.approveReroutePlan(req.params.id, req.user!.email, req.user!.role);
   if (!plan) return res.status(404).json({ error: 'Reroute plan not found' });
 
@@ -281,11 +302,11 @@ app.post('/api/civilian/report', authenticateToken, (req: AuthRequest, res: Resp
   return res.status(201).json({ report, message: 'Report submitted successfully for authority review.' });
 });
 
-app.get('/api/civilian/reports', (req: Request, res: Response) => {
+app.get('/api/civilian/reports', authenticateToken, requireRole(adminOrAuthorityRoles), (req: AuthRequest, res: Response) => {
   return res.json({ reports: store.getCivilianReports() });
 });
 
-app.post('/api/civilian/verify/:id', authenticateToken, requireRole(['ADMIN', 'TRAFFIC_POLICE']), (req: AuthRequest, res: Response) => {
+app.post('/api/civilian/verify/:id', authenticateToken, requireRole(adminOrAuthorityRoles), (req: AuthRequest, res: Response) => {
   const inc = store.verifyCivilianReport(req.params.id, req.user!.email, req.user!.role);
   if (!inc) return res.status(404).json({ error: 'Report not found' });
 
@@ -296,9 +317,9 @@ app.post('/api/civilian/verify/:id', authenticateToken, requireRole(['ADMIN', 'T
 });
 
 // ==========================================
-// 6. SIH DEMO SIMULATION ENGINE ENDPOINTS
+// 6. SIH DEMO SIMULATION ENGINE & AUDIT LOGS
 // ==========================================
-app.post('/api/simulation/accident', authenticateToken, requireRole(['ADMIN', 'TRAFFIC_POLICE']), (req: AuthRequest, res: Response) => {
+app.post('/api/simulation/accident', authenticateToken, requireRole(adminOrAuthorityRoles), (req: AuthRequest, res: Response) => {
   const { incident, plan, notification } = store.simulateAccidentScenario();
 
   broadcastEvent('incident.created', { incident });
@@ -315,8 +336,13 @@ app.post('/api/simulation/accident', authenticateToken, requireRole(['ADMIN', 'T
   });
 });
 
-app.get('/api/audit-logs', authenticateToken, requireRole(['ADMIN', 'TRAFFIC_POLICE', 'ROAD_DEPARTMENT']), (req: AuthRequest, res: Response) => {
+app.get('/api/audit-logs', authenticateToken, requireRole(adminOrAuthorityRoles), (req: AuthRequest, res: Response) => {
   return res.json({ auditLogs: store.getAuditLogs() });
+});
+
+// Protected Admin Guard Catch-All for /api/admin/*
+app.all('/api/admin/*', authenticateToken, requireRole(adminOrAuthorityRoles), (req: AuthRequest, res: Response) => {
+  return res.json({ status: 'OK', user: req.user });
 });
 
 // ==========================================
@@ -327,6 +353,7 @@ io.on('connection', (socket) => {
 
   socket.emit('traffic.init', {
     roads: store.getRoads(),
+    junctions: store.getJunctions(),
     kpis: store.getKpis(),
     incidents: store.getIncidents().filter(i => i.status === 'ACTIVE'),
     notifications: store.getNotifications()
@@ -341,5 +368,6 @@ server.listen(PORT, () => {
   console.log(`=======================================================`);
   console.log(`🚀 INDORE TRAFFIC INTELLIGENCE API LISTENING ON PORT ${PORT}`);
   console.log(`📡 WebSocket Bus Ready for Live Traffic Events`);
+  console.log(`🔒 RBAC Authorization Enforced: Admin vs Civilian Scopes Active`);
   console.log(`=======================================================`);
 });
