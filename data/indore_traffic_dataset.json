@@ -9,8 +9,183 @@
       [22.8000, 75.9800]
     ]
   },
-  "last_dataset_sync": "2026-09-15T17:15:00Z",
-  "data_provider": "Indore Municipal Traffic Intelligence System (Demographic Sensor Net)",
+  "last_dataset_sync": "2026-09-15T22:33:00Z",
+  "data_provider": "Official Indore Vehicle Count Traffic Analysis Report (Dec 2024 – Apr 2025)",
+  "traffic_summary": {
+    "grand_total_vehicles": 45197030,
+    "total_two_wheelers": 17630421,
+    "total_three_wheelers": 9442899,
+    "total_four_wheelers": 18123710,
+    "congestion_distribution": {
+      "HIGH": "72%",
+      "MODERATE": "19%",
+      "SEVERE": "9%"
+    },
+    "congestion_thresholds": {
+      "LOW": "< 1,200 avg peak",
+      "MODERATE": "1,200 - 1,999 avg peak",
+      "HIGH": "2,000 - 2,999 avg peak",
+      "SEVERE": ">= 3,000 avg peak"
+    }
+  },
+  "junctions": [
+    {
+      "id": "junc-geetabhawan",
+      "junctionName": "Geetabhawan",
+      "period": "30 Dec 2024 – 30 Apr 2025",
+      "twoWheelerCount": 777497,
+      "threeWheelerCount": 2564986,
+      "fourWheelerCount": 2908288,
+      "totalVehicles": 6250771,
+      "peakHourAvg": 3257,
+      "congestionLevel": "SEVERE",
+      "coordinates": { "lat": 22.7161, "lng": 75.8814 }
+    },
+    {
+      "id": "junc-guitar",
+      "junctionName": "Guitar",
+      "period": "28 Dec 2024 – 30 Apr 2025",
+      "twoWheelerCount": 3170017,
+      "threeWheelerCount": 838858,
+      "fourWheelerCount": 2213217,
+      "totalVehicles": 6222092,
+      "peakHourAvg": 2927,
+      "congestionLevel": "HIGH",
+      "coordinates": { "lat": 22.7380, "lng": 75.8885 }
+    },
+    {
+      "id": "junc-lig",
+      "junctionName": "LIG",
+      "period": "26 Dec 2024 – 30 Apr 2025",
+      "twoWheelerCount": 2548578,
+      "threeWheelerCount": 852890,
+      "fourWheelerCount": 1960460,
+      "totalVehicles": 5361928,
+      "peakHourAvg": 2675,
+      "congestionLevel": "HIGH",
+      "coordinates": { "lat": 22.7420, "lng": 75.8900 }
+    },
+    {
+      "id": "junc-rusoma",
+      "junctionName": "Rusoma",
+      "period": "26 Dec 2024 – 30 Apr 2025",
+      "twoWheelerCount": 2110700,
+      "threeWheelerCount": 814590,
+      "fourWheelerCount": 2128167,
+      "totalVehicles": 5053457,
+      "peakHourAvg": 2507,
+      "congestionLevel": "HIGH",
+      "coordinates": { "lat": 22.7660, "lng": 75.8960 }
+    },
+    {
+      "id": "junc-industry-house",
+      "junctionName": "Industry House",
+      "period": "26 Dec 2024 – 30 Apr 2025",
+      "twoWheelerCount": 1874318,
+      "threeWheelerCount": 632959,
+      "fourWheelerCount": 1966258,
+      "totalVehicles": 4473535,
+      "peakHourAvg": 2352,
+      "congestionLevel": "HIGH",
+      "coordinates": { "lat": 22.7244, "lng": 75.8839 }
+    },
+    {
+      "id": "junc-shivaji-vatika",
+      "junctionName": "Shivaji Vatika",
+      "period": "15 Feb 2025 – 30 Apr 2025",
+      "twoWheelerCount": 411257,
+      "threeWheelerCount": 1065604,
+      "fourWheelerCount": 1331432,
+      "totalVehicles": 2808293,
+      "peakHourAvg": 2487,
+      "congestionLevel": "HIGH",
+      "coordinates": { "lat": 22.7100, "lng": 75.8780 }
+    },
+    {
+      "id": "junc-palasiya",
+      "junctionName": "Palasiya",
+      "period": "21 Jan 2025 – 29 Apr 2025",
+      "twoWheelerCount": 1167466,
+      "threeWheelerCount": 353353,
+      "fourWheelerCount": 1197617,
+      "totalVehicles": 2718436,
+      "peakHourAvg": 2250,
+      "congestionLevel": "HIGH",
+      "coordinates": { "lat": 22.7244, "lng": 75.8839 }
+    },
+    {
+      "id": "junc-gpo",
+      "junctionName": "GPO",
+      "period": "26 Dec 2024 – 30 Apr 2025",
+      "twoWheelerCount": 1219169,
+      "threeWheelerCount": 460555,
+      "fourWheelerCount": 762745,
+      "totalVehicles": 2442469,
+      "peakHourAvg": 1301,
+      "congestionLevel": "MODERATE",
+      "coordinates": { "lat": 22.7125, "lng": 75.8690 }
+    },
+    {
+      "id": "junc-indrapratima",
+      "junctionName": "Indrapratima",
+      "period": "21 Feb 2025 – 30 Apr 2025",
+      "twoWheelerCount": 1187851,
+      "threeWheelerCount": 291765,
+      "fourWheelerCount": 940143,
+      "totalVehicles": 2419759,
+      "peakHourAvg": 2700,
+      "congestionLevel": "HIGH",
+      "coordinates": { "lat": 22.7450, "lng": 75.8920 }
+    },
+    {
+      "id": "junc-navlakha",
+      "junctionName": "Navlakha",
+      "period": "26 Dec 2024 – 30 Apr 2025",
+      "twoWheelerCount": 789514,
+      "threeWheelerCount": 375637,
+      "fourWheelerCount": 1020587,
+      "totalVehicles": 2185738,
+      "peakHourAvg": 1534,
+      "congestionLevel": "MODERATE",
+      "coordinates": { "lat": 22.7050, "lng": 75.8750 }
+    },
+    {
+      "id": "junc-scheme78",
+      "junctionName": "Scheme78",
+      "period": "04 Mar 2025 – 30 Apr 2025",
+      "twoWheelerCount": 1077428,
+      "threeWheelerCount": 202333,
+      "fourWheelerCount": 853111,
+      "totalVehicles": 2132872,
+      "peakHourAvg": 2561,
+      "congestionLevel": "HIGH",
+      "coordinates": { "lat": 22.7630, "lng": 75.8920 }
+    },
+    {
+      "id": "junc-mr9",
+      "junctionName": "MR9",
+      "period": "05 Feb 2025 – 30 Apr 2025",
+      "twoWheelerCount": 637952,
+      "threeWheelerCount": 315956,
+      "fourWheelerCount": 664151,
+      "totalVehicles": 1618059,
+      "peakHourAvg": 1379,
+      "congestionLevel": "MODERATE",
+      "coordinates": { "lat": 22.7550, "lng": 75.8890 }
+    },
+    {
+      "id": "junc-satyasai",
+      "junctionName": "Satyasai",
+      "period": "12 Feb 2025 – 30 Apr 2025",
+      "twoWheelerCount": 658674,
+      "threeWheelerCount": 673413,
+      "fourWheelerCount": 177534,
+      "totalVehicles": 1509621,
+      "peakHourAvg": 1355,
+      "congestionLevel": "MODERATE",
+      "coordinates": { "lat": 22.7510, "lng": 75.8930 }
+    }
+  ],
   "roads": [
     {
       "id": "road-ab-north",
@@ -40,7 +215,7 @@
       ],
       "startIntersection": "Palasia Square",
       "endIntersection": "Vijay Nagar Square",
-      "lastUpdated": "2026-09-15T17:14:30Z",
+      "lastUpdated": "2026-09-15T22:33:30Z",
       "predictions": {
         "plus15Min": { "congestion": 78, "speed": 16, "status": "SEVERE" },
         "plus30Min": { "congestion": 85, "speed": 12, "status": "CRITICAL" },
@@ -76,7 +251,7 @@
       ],
       "startIntersection": "Vijay Nagar Square",
       "endIntersection": "Bengali Square",
-      "lastUpdated": "2026-09-15T17:14:12Z",
+      "lastUpdated": "2026-09-15T22:33:12Z",
       "predictions": {
         "plus15Min": { "congestion": 65, "speed": 24, "status": "HEAVY" },
         "plus30Min": { "congestion": 70, "speed": 21, "status": "HEAVY" },
@@ -112,7 +287,7 @@
       ],
       "startIntersection": "Super Corridor Junction",
       "endIntersection": "Bypass Intersection",
-      "lastUpdated": "2026-09-15T17:14:50Z",
+      "lastUpdated": "2026-09-15T22:33:50Z",
       "predictions": {
         "plus15Min": { "congestion": 35, "speed": 46, "status": "FREE_FLOW" },
         "plus30Min": { "congestion": 38, "speed": 44, "status": "FREE_FLOW" },
@@ -148,7 +323,7 @@
       ],
       "startIntersection": "Rajwada Chowk",
       "endIntersection": "Palasia Square",
-      "lastUpdated": "2026-09-15T17:13:55Z",
+      "lastUpdated": "2026-09-15T22:33:55Z",
       "predictions": {
         "plus15Min": { "congestion": 81, "speed": 12, "status": "CRITICAL" },
         "plus30Min": { "congestion": 88, "speed": 9, "status": "CRITICAL" },
@@ -183,7 +358,7 @@
       ],
       "startIntersection": "Bada Sarafa",
       "endIntersection": "Khajuri Bazar",
-      "lastUpdated": "2026-09-15T17:14:05Z",
+      "lastUpdated": "2026-09-15T22:33:05Z",
       "predictions": {
         "plus15Min": { "congestion": 89, "speed": 7, "status": "CRITICAL" },
         "plus30Min": { "congestion": 92, "speed": 5, "status": "CRITICAL" },
@@ -218,7 +393,7 @@
       ],
       "startIntersection": "Airport Roundabout",
       "endIntersection": "MR-10 Junction",
-      "lastUpdated": "2026-09-15T17:14:40Z",
+      "lastUpdated": "2026-09-15T22:33:40Z",
       "predictions": {
         "plus15Min": { "congestion": 20, "speed": 66, "status": "FREE_FLOW" },
         "plus30Min": { "congestion": 22, "speed": 64, "status": "FREE_FLOW" },
@@ -253,7 +428,7 @@
       ],
       "startIntersection": "Devi Ahilya Airport",
       "endIntersection": "Bada Ganpati",
-      "lastUpdated": "2026-09-15T17:14:00Z",
+      "lastUpdated": "2026-09-15T22:33:00Z",
       "predictions": {
         "plus15Min": { "congestion": 45, "speed": 32, "status": "MODERATE" },
         "plus30Min": { "congestion": 50, "speed": 30, "status": "MODERATE" },
@@ -288,7 +463,7 @@
       ],
       "startIntersection": "Bhawarkuan Square",
       "endIntersection": "Rau Circle",
-      "lastUpdated": "2026-09-15T17:14:22Z",
+      "lastUpdated": "2026-09-15T22:33:22Z",
       "predictions": {
         "plus15Min": { "congestion": 54, "speed": 34, "status": "MODERATE" },
         "plus30Min": { "congestion": 62, "speed": 29, "status": "HEAVY" },
@@ -324,7 +499,7 @@
       ],
       "startIntersection": "Dewas Naka Bypass",
       "endIntersection": "Rau Bypass Interchange",
-      "lastUpdated": "2026-09-15T17:14:15Z",
+      "lastUpdated": "2026-09-15T22:33:15Z",
       "predictions": {
         "plus15Min": { "congestion": 18, "speed": 70, "status": "FREE_FLOW" },
         "plus30Min": { "congestion": 21, "speed": 68, "status": "FREE_FLOW" },
@@ -406,7 +581,7 @@
       "title": "Severe Congestion Alert: AB Road",
       "message": "AB Road experiencing +21% traffic spike due to Metro construction and stalled bus near LIG Square.",
       "type": "WARNING",
-      "timestamp": "2026-09-15T17:10:00Z",
+      "timestamp": "2026-09-15T22:10:00Z",
       "affectedRoadId": "road-ab-north",
       "isRead": false,
       "audience": "ALL"

@@ -1,11 +1,10 @@
 import React from 'react';
-import { MapContainer, TileLayer, Polyline, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Polyline, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
-import { RoadSegment, Incident, ConstructionProject, AlternateRoute } from '../types';
+import { RoadSegment, Incident, ConstructionProject, AlternateRoute, JunctionTrafficData } from '../types';
 import { mapService } from '../services/MapService';
-import { AlertTriangle, Construction as ConstructionIcon, ShieldAlert, Navigation, Octagon, ArrowRight } from 'lucide-react';
+import { AlertTriangle, Construction as ConstructionIcon, Activity } from 'lucide-react';
 
-// Fix default leaflet marker icon issue in Vite
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
@@ -13,7 +12,6 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
-// Custom incident icons
 const createIncidentIcon = (severity: string, type: string) => {
   const isAccident = type === 'ACCIDENT';
   const color = severity === 'CRITICAL' ? '#DC2626' : '#F59E0B';
@@ -44,8 +42,27 @@ const createConstructionIcon = () => {
   });
 };
 
+const createJunctionIcon = (level: string) => {
+  let bgColor = '#EAB308'; // Moderate Yellow
+  if (level === 'SEVERE') bgColor = '#DC2626'; // Severe Red
+  else if (level === 'HIGH') bgColor = '#F97316'; // High Orange
+
+  const iconHtml = `
+    <div style="background:${bgColor}; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:2px solid #ffffff; box-shadow:0 0 8px ${bgColor}; font-size:10px; font-weight:bold; color:#fff;">
+      🚦
+    </div>
+  `;
+  return L.divIcon({
+    html: iconHtml,
+    className: 'custom-junction-marker',
+    iconSize: [24, 24],
+    iconAnchor: [12, 12]
+  });
+};
+
 interface IndoreMapProps {
   roads: RoadSegment[];
+  junctions?: JunctionTrafficData[];
   incidents: Incident[];
   constructions: ConstructionProject[];
   activeAlternateRoutes?: AlternateRoute[];
@@ -58,13 +75,12 @@ interface IndoreMapProps {
 
 export const IndoreMap: React.FC<IndoreMapProps> = ({
   roads,
+  junctions = [],
   incidents,
   constructions,
   activeAlternateRoutes = [],
   selectedRoad,
   onSelectRoad,
-  onBlockRoad,
-  onGenerateReroute,
   provider = 'OpenStreetMap'
 }) => {
   const layerConfig = mapService.getLayerConfig(provider);
@@ -119,38 +135,26 @@ export const IndoreMap: React.FC<IndoreMapProps> = ({
                     <div>
                       <span className="text-slate-400 block text-[10px]">Speed</span>
                       <span className="font-bold text-white">{road.currentSpeed} km/h</span>
-                      <span className="text-[10px] text-slate-400"> (Limit {road.speedLimit})</span>
                     </div>
                     <div>
                       <span className="text-slate-400 block text-[10px]">Congestion</span>
                       <span className="font-bold text-amber-400">{road.congestionPercentage}%</span>
-                      <span className="text-[10px] text-red-400"> (+{road.congestionChangePercentage}%)</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 block text-[10px]">Travel Time</span>
-                      <span className="font-bold text-white">{road.travelTimeMinutes} min</span>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 block text-[10px]">Free-Flow Speed</span>
-                      <span className="font-bold text-emerald-400">{road.freeFlowSpeed} km/h</span>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-700">
-                    <button
-                      onClick={() => onSelectRoad(road)}
-                      className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs py-1 px-2 rounded font-medium transition"
-                    >
-                      View Full Intelligence Panel
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => onSelectRoad(road)}
+                    className="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs py-1 px-2 rounded font-medium transition"
+                  >
+                    View Full Intelligence Panel
+                  </button>
                 </div>
               </Popup>
             </Polyline>
           );
         })}
 
-        {/* Render Active Alternate Routes Overlay if executing Reroute */}
+        {/* Render Alternate Routes Overlay */}
         {activeAlternateRoutes.map((route, idx) => (
           <Polyline
             key={`alt-route-${route.id || idx}`}
@@ -168,10 +172,58 @@ export const IndoreMap: React.FC<IndoreMapProps> = ({
                   {route.routeName}
                 </span>
                 <p className="text-xs text-slate-200 mt-1">{route.recommendationReason}</p>
-                <p className="text-[10px] text-emerald-400 font-bold mt-1">Saves 11 min over main corridor</p>
               </div>
             </Popup>
           </Polyline>
+        ))}
+
+        {/* Render Official Multi-Junction Markers */}
+        {junctions.map((j) => (
+          <Marker
+            key={j.id}
+            position={[j.coordinates.lat, j.coordinates.lng]}
+            icon={createJunctionIcon(j.congestionLevel)}
+          >
+            <Popup>
+              <div className="p-1 min-w-[210px] space-y-1.5">
+                <div className="flex items-center justify-between border-b border-slate-700 pb-1">
+                  <h4 className="font-bold text-xs text-white">{j.junctionName} Junction</h4>
+                  <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                    j.congestionLevel === 'SEVERE' ? 'bg-red-600 text-white' : 
+                    j.congestionLevel === 'HIGH' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' : 
+                    'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
+                  }`}>
+                    {j.congestionLevel}
+                  </span>
+                </div>
+                <p className="text-[10px] text-slate-400 font-mono">Period: {j.period}</p>
+                <div className="bg-slate-900 p-2 rounded text-xs space-y-1 border border-slate-800">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Peak Hour Avg:</span>
+                    <span className="font-extrabold text-amber-400">{j.peakHourAvg.toLocaleString()} veh/hr</span>
+                  </div>
+                  <div className="flex justify-between text-[11px]">
+                    <span className="text-slate-400">Total Count:</span>
+                    <span className="font-bold text-white">{j.totalVehicles.toLocaleString()}</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-1 pt-1 text-[9px] text-center border-t border-slate-800">
+                    <div>
+                      <span className="text-emerald-400 block font-bold">2W</span>
+                      <span className="text-slate-300">{(j.twoWheelerCount / 1000).toFixed(0)}k</span>
+                    </div>
+                    <div>
+                      <span className="text-amber-400 block font-bold">3W</span>
+                      <span className="text-slate-300">{(j.threeWheelerCount / 1000).toFixed(0)}k</span>
+                    </div>
+                    <div>
+                      <span className="text-blue-400 block font-bold">4W</span>
+                      <span className="text-slate-300">{(j.fourWheelerCount / 1000).toFixed(0)}k</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Popup>
+          </Marker>
         ))}
 
         {/* Render Incident Markers */}
@@ -188,9 +240,6 @@ export const IndoreMap: React.FC<IndoreMapProps> = ({
                   <span>{inc.title}</span>
                 </div>
                 <p className="text-xs text-slate-300 mb-2">{inc.description}</p>
-                <div className="text-[10px] text-slate-400">
-                  <span>Lanes Affected: <strong className="text-white">{inc.affectedLanes}</strong></span>
-                </div>
               </div>
             </Popup>
           </Marker>
@@ -210,7 +259,6 @@ export const IndoreMap: React.FC<IndoreMapProps> = ({
                   <span>{c.projectName}</span>
                 </div>
                 <p className="text-[11px] text-slate-300">Contractor: {c.contractorDepartment}</p>
-                <p className="text-[10px] text-amber-400 mt-1 font-semibold">Expected Delay: +{c.expectedDelayMinutes} mins</p>
               </div>
             </Popup>
           </Marker>
@@ -239,6 +287,9 @@ export const IndoreMap: React.FC<IndoreMapProps> = ({
         <div className="flex items-center space-x-2">
           <span className="w-3 h-1.5 rounded bg-red-800"></span>
           <span className="text-slate-200 text-[11px]">Critical / Blocked (85%+)</span>
+        </div>
+        <div className="pt-1 border-t border-slate-700/80 flex items-center space-x-1 text-[10px] text-amber-300 font-semibold">
+          <span>🚦 = 13 Official Audit Junctions</span>
         </div>
       </div>
     </div>

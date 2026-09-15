@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { RoadSegment, Incident, ConstructionProject, TrafficKpis, ReroutePlan, SystemNotification } from '../types';
+import { RoadSegment, Incident, ConstructionProject, TrafficKpis, ReroutePlan, SystemNotification, JunctionTrafficData } from '../types';
 import { ApiService } from '../services/api';
 import { AdminTopBar } from '../components/AdminTopBar';
 import { AdminSidebar } from '../components/AdminSidebar';
@@ -11,6 +11,7 @@ import { PredictionPanel } from '../components/PredictionPanel';
 import { DepartmentDashboard } from '../components/DepartmentDashboard';
 import { DemoSimulationEngine } from '../components/DemoSimulationEngine';
 import { AccidentWorkflowModal } from '../components/AccidentWorkflowModal';
+import { JunctionTrafficReport } from '../components/JunctionTrafficReport';
 import { useAuth } from '../context/AuthContext';
 import { 
   BarChart, 
@@ -20,16 +21,14 @@ import {
   Tooltip, 
   ResponsiveContainer, 
   LineChart, 
-  Line, 
-  PieChart, 
-  Pie, 
-  Cell 
+  Line 
 } from 'recharts';
 
 export const AdminDashboard: React.FC = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [roads, setRoads] = useState<RoadSegment[]>([]);
+  const [junctions, setJunctions] = useState<JunctionTrafficData[]>([]);
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [constructions, setConstructions] = useState<ConstructionProject[]>([]);
   const [kpis, setKpis] = useState<TrafficKpis>({
@@ -41,6 +40,10 @@ export const AdminDashboard: React.FC = () => {
     averageCongestionPercentage: 58,
     emergencyIncidents: 1,
     affectedUsers: 8421,
+    totalVehicleVolume: 45197030,
+    twoWheelerCount: 17630421,
+    threeWheelerCount: 9442899,
+    fourWheelerCount: 18123710,
     lastUpdated: new Date().toISOString()
   });
   const [activeReroutePlan, setActiveReroutePlan] = useState<ReroutePlan | null>(null);
@@ -51,7 +54,6 @@ export const AdminDashboard: React.FC = () => {
   const [hourlyData, setHourlyData] = useState<any[]>([]);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
 
-  // Initial Data Fetch & WebSocket Setup
   useEffect(() => {
     fetchInitialData();
 
@@ -59,6 +61,7 @@ export const AdminDashboard: React.FC = () => {
 
     socket.on('traffic.init', (data) => {
       setRoads(data.roads || []);
+      setJunctions(data.junctions || []);
       setIncidents(data.incidents || []);
       if (data.kpis) setKpis(data.kpis);
     });
@@ -92,6 +95,7 @@ export const AdminDashboard: React.FC = () => {
     try {
       const live = await ApiService.getLiveTraffic();
       setRoads(live.roads || []);
+      setJunctions(live.junctions || []);
       setIncidents(live.incidents || []);
       setConstructions(live.constructions || []);
       if (live.kpis) setKpis(live.kpis);
@@ -168,6 +172,7 @@ export const AdminDashboard: React.FC = () => {
             <div className="lg:col-span-8 h-[550px]">
               <IndoreMap
                 roads={roads}
+                junctions={junctions}
                 incidents={incidents}
                 constructions={constructions}
                 activeAlternateRoutes={activeReroutePlan?.alternateRoutes || []}
@@ -281,6 +286,9 @@ export const AdminDashboard: React.FC = () => {
 
           {/* Traffic Analytics Delta Table */}
           <TrafficAnalyticsTable roads={roads} onSelectRoad={(r) => setSelectedRoad(r)} />
+
+          {/* Official Vehicle Count Traffic Analysis Report Module */}
+          <JunctionTrafficReport junctions={junctions} />
 
           {/* Predictive Traffic Engine Panel */}
           <PredictionPanel roads={roads} />

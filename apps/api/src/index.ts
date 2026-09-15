@@ -112,6 +112,7 @@ app.get('/api/auth/me', authenticateToken, (req: AuthRequest, res: Response) => 
 app.get('/api/traffic/live', (req: Request, res: Response) => {
   return res.json({
     roads: store.getRoads(),
+    junctions: store.getJunctions(),
     kpis: store.getKpis(),
     incidents: store.getIncidents().filter(i => i.status === 'ACTIVE'),
     constructions: store.getConstructions().filter(c => c.status === 'ACTIVE'),
@@ -119,6 +120,10 @@ app.get('/api/traffic/live', (req: Request, res: Response) => {
     lastUpdated: new Date().toISOString(),
     dataMode: process.env.DATA_MODE || 'SIMULATED_LIVE'
   });
+});
+
+app.get('/api/traffic/junctions', (req: Request, res: Response) => {
+  return res.json({ junctions: store.getJunctions() });
 });
 
 app.get('/api/traffic/history', (req: Request, res: Response) => {

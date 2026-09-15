@@ -26,6 +26,19 @@ export interface GeoPoint {
   lng: number;
 }
 
+export interface JunctionTrafficData {
+  id: string;
+  junctionName: string;
+  period: string;
+  twoWheelerCount: number;
+  threeWheelerCount: number;
+  fourWheelerCount: number;
+  totalVehicles: number;
+  peakHourAvg: number;
+  congestionLevel: 'LOW' | 'MODERATE' | 'HIGH' | 'SEVERE';
+  coordinates: GeoPoint;
+}
+
 export interface RoadSegment {
   id: string;
   name: string;
@@ -166,6 +179,10 @@ export interface TrafficKpis {
   averageCongestionPercentage: number;
   emergencyIncidents: number;
   affectedUsers: number;
+  totalVehicleVolume: number;
+  twoWheelerCount: number;
+  threeWheelerCount: number;
+  fourWheelerCount: number;
   lastUpdated: string;
 }
 
