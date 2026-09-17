@@ -26,14 +26,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenCommandCenter, o
       {/* Navbar */}
       <nav className="border-b border-slate-800 bg-[#0F172A]/90 backdrop-blur-md sticky top-0 z-50 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/40 flex items-center justify-center text-blue-400">
-            <Activity className="w-6 h-6 animate-pulse" />
-          </div>
+          <img src="/gatiraksha-logo.png" alt="GatiRaksha Logo" className="w-10 h-10 rounded-xl border border-blue-500/40 object-cover shadow-md" />
           <div>
-            <h1 className="font-extrabold text-base text-white tracking-wider font-sans uppercase">
-              Indore Traffic Intelligence
+            <h1 className="font-extrabold text-base text-white tracking-wider font-sans uppercase flex items-center gap-1.5">
+              <span className="text-blue-400">GatiRaksha</span> Platform
             </h1>
-            <p className="text-[10px] text-slate-400">Urban Decision Support Platform • SIH 2026 Core</p>
+            <p className="text-[10px] text-slate-400">Smart Urban Traffic & Incident Response Platform</p>
           </div>
         </div>
 
@@ -58,13 +56,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onOpenCommandCenter, o
       <section className="relative py-24 px-6 text-center max-w-5xl mx-auto space-y-6">
         <div className="inline-flex items-center space-x-2 bg-blue-500/10 border border-blue-500/30 px-3.5 py-1.5 rounded-full text-blue-400 text-xs font-bold">
           <Sparkles className="w-4 h-4 animate-spin" />
-          <span>SMART INDIA HACKATHON INNOVATION</span>
+          <span>GATIRAKSHA SMART TRAFFIC PLATFORM</span>
         </div>
 
         <h1 className="text-4xl md:text-6xl font-black text-white tracking-tight leading-tight font-sans">
-          INDORE TRAFFIC INTELLIGENCE <br />
+          GATIRAKSHA TRAFFIC <br />
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400">
-            & RESPONSE PLATFORM
+            & INCIDENT RESPONSE PLATFORM
           </span>
         </h1>
 

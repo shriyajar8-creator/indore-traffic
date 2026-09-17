@@ -60,6 +60,8 @@ const createJunctionIcon = (level: string) => {
   });
 };
 
+import { GoogleMapContainer } from './GoogleMapContainer';
+
 interface IndoreMapProps {
   roads: RoadSegment[];
   junctions?: JunctionTrafficData[];
@@ -70,7 +72,10 @@ interface IndoreMapProps {
   onSelectRoad: (road: RoadSegment) => void;
   onBlockRoad?: (roadId: string) => void;
   onGenerateReroute?: (roadId: string) => void;
-  provider?: 'OpenStreetMap' | 'MapLibre' | 'Mapbox' | 'ArcGIS';
+  provider?: 'OpenStreetMap' | 'MapLibre' | 'Mapbox' | 'ArcGIS' | 'GoogleMaps';
+  directionsRoute?: any;
+  onMapClick?: (coords: { lat: number; lng: number }) => void;
+  osmItems?: any[];
 }
 
 export const IndoreMap: React.FC<IndoreMapProps> = ({
@@ -81,10 +86,36 @@ export const IndoreMap: React.FC<IndoreMapProps> = ({
   activeAlternateRoutes = [],
   selectedRoad,
   onSelectRoad,
-  provider = 'OpenStreetMap'
+  provider = 'OpenStreetMap',
+  directionsRoute,
+  onMapClick,
+  osmItems = []
 }) => {
+  const apiKey = (process.env.FRONTEND_MAPS_API_KEY || process.env.VITE_FRONTEND_MAPS_API_KEY || '').trim();
+
+  if (provider === 'GoogleMaps' && apiKey) {
+    return (
+      <GoogleMapContainer
+        roads={roads}
+        junctions={junctions}
+        incidents={incidents}
+        constructions={constructions}
+        activeAlternateRoutes={activeAlternateRoutes}
+        selectedRoad={selectedRoad}
+        onSelectRoad={onSelectRoad}
+        center={{ lat: 22.7177623, lng: 75.8585458 }}
+        zoom={16.75}
+        directionsRoute={directionsRoute}
+        onMapClick={onMapClick}
+        osmItems={osmItems}
+      />
+    );
+  }
+
+
   const layerConfig = mapService.getLayerConfig(provider);
   const indoreCenter: [number, number] = [22.7196, 75.8577];
+
 
   return (
     <div className="relative w-full h-full min-h-[520px] rounded-xl overflow-hidden border border-slate-800 shadow-2xl">
@@ -153,6 +184,45 @@ export const IndoreMap: React.FC<IndoreMapProps> = ({
             </Polyline>
           );
         })}
+
+        {/* Render Primary Selected Directions Route Polyline */}
+        {(() => {
+          const pts: [number, number][] = directionsRoute?.pathPoints || directionsRoute?.routes?.[0]?.pathPoints || directionsRoute?.coordinates || [];
+          if (pts.length === 0) return null;
+          const startPt = pts[0];
+          const endPt = pts[pts.length - 1];
+          return (
+            <>
+              <Polyline
+                positions={pts}
+                pathOptions={{
+                  color: '#10B981',
+                  weight: 8,
+                  opacity: 0.9,
+                  lineCap: 'round',
+                  lineJoin: 'round'
+                }}
+              >
+                <Popup>
+                  <div className="p-1 min-w-[180px]">
+                    <span className="font-bold text-xs text-emerald-400">Selected Commuter Route</span>
+                    <p className="text-[11px] text-slate-300">Optimal path calculated for active navigation</p>
+                  </div>
+                </Popup>
+              </Polyline>
+              {startPt && (
+                <Marker position={startPt}>
+                  <Popup><div className="text-xs font-bold text-emerald-400">📍 Origin Point</div></Popup>
+                </Marker>
+              )}
+              {endPt && (
+                <Marker position={endPt}>
+                  <Popup><div className="text-xs font-bold text-blue-400">🏁 Destination Point</div></Popup>
+                </Marker>
+              )}
+            </>
+          );
+        })()}
 
         {/* Render Alternate Routes Overlay */}
         {activeAlternateRoutes.map((route, idx) => (

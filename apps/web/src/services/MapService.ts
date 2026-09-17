@@ -47,6 +47,13 @@ export class MapService {
           attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ',
           maxZoom: 18
         };
+      case 'GoogleMaps':
+        return {
+          provider: 'GoogleMaps',
+          tileUrl: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+          maxZoom: 19
+        };
       case 'OpenStreetMap':
       default:
         return {
@@ -55,6 +62,7 @@ export class MapService {
           attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
           maxZoom: 19
         };
+
     }
   }
 

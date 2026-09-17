@@ -1,35 +1,41 @@
 import React from 'react';
 import { 
   LayoutDashboard, 
-  Navigation, 
   AlertTriangle, 
-  ShieldAlert, 
   Octagon, 
   Construction, 
-  GitFork, 
   BrainCircuit, 
   Network, 
   Building2, 
   Siren, 
   FileText, 
   BarChart3, 
-  Settings 
+  Settings,
+  X,
+  Shield,
+  Briefcase
 } from 'lucide-react';
+import { DashboardRole } from './AdminTopBar';
 
 interface SidebarProps {
   activeTab: string;
   onSelectTab: (tab: string) => void;
+  activeRole?: DashboardRole;
+  mobileMenuOpen?: boolean;
+  onCloseMobileMenu?: () => void;
 }
 
-export const AdminSidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab }) => {
+export const AdminSidebar: React.FC<SidebarProps> = ({ 
+  activeTab, 
+  onSelectTab,
+  mobileMenuOpen = false,
+  onCloseMobileMenu
+}) => {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'live-traffic', label: 'Live Traffic', icon: Navigation },
-    { id: 'incidents', label: 'Traffic Incidents', icon: AlertTriangle },
-    { id: 'accidents', label: 'Accidents', icon: ShieldAlert },
+    { id: 'incidents', label: 'Incidents & Accidents', icon: AlertTriangle },
     { id: 'closures', label: 'Road Closures', icon: Octagon },
     { id: 'construction', label: 'Construction', icon: Construction },
-    { id: 'rerouting', label: 'Rerouting', icon: GitFork },
     { id: 'predictions', label: 'Predictions', icon: BrainCircuit },
     { id: 'network', label: 'Road Network', icon: Network },
     { id: 'departments', label: 'Departments', icon: Building2 },
@@ -39,19 +45,33 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab })
     { id: 'settings', label: 'System Settings', icon: Settings }
   ];
 
-  return (
-    <aside className="w-64 bg-[#0F172A] border-r border-slate-800 flex flex-col justify-between select-none h-[calc(100vh-53px)] sticky top-[53px]">
-      <div className="py-3 px-2 overflow-y-auto space-y-1">
-        <div className="px-3 py-1.5 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
-          Command Controls
+  const handleNavClick = (id: string) => {
+    onSelectTab(id);
+    if (onCloseMobileMenu) onCloseMobileMenu();
+  };
+
+  const sidebarContent = (
+    <div className="flex flex-col justify-between h-full">
+      <div className="py-3 px-2 overflow-y-auto space-y-2">
+        {/* Mobile Header Close button */}
+        <div className="md:hidden flex items-center justify-between pb-2 border-b border-slate-800 px-2">
+          <span className="text-xs font-bold text-white">Menu Navigation</span>
+          <button onClick={onCloseMobileMenu} className="p-1 rounded bg-slate-800 text-slate-400">
+            <X className="w-4 h-4" />
+          </button>
         </div>
+
+        <div className="px-3 py-1 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+          Command Controls (11 Tabs)
+        </div>
+        
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
           return (
             <button
               key={item.id}
-              onClick={() => onSelectTab(item.id)}
+              onClick={() => handleNavClick(item.id)}
               className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
                 isActive
                   ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30 shadow-md font-semibold'
@@ -73,6 +93,26 @@ export const AdminSidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab })
         </div>
         <p className="mt-0.5 truncate">Smart India Hackathon 2026 Core</p>
       </div>
-    </aside>
+    </div>
+  );
+
+  return (
+    <>
+      {/* Desktop Sidebar */}
+      <aside className="hidden md:flex w-64 bg-[#0F172A] border-r border-slate-800 flex-col select-none h-[calc(100vh-53px)] sticky top-[53px]">
+        {sidebarContent}
+      </aside>
+
+      {/* Mobile Drawer Overlay */}
+      {mobileMenuOpen && (
+        <div className="md:hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex">
+          <div className="w-72 bg-[#0F172A] border-r border-slate-800 h-full p-2 flex flex-col shadow-2xl">
+            {sidebarContent}
+          </div>
+          <div className="flex-1" onClick={onCloseMobileMenu}></div>
+        </div>
+      )}
+    </>
   );
 };
+

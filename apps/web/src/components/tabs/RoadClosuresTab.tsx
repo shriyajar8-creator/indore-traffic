@@ -20,8 +20,8 @@ export const RoadClosuresTab: React.FC<RoadClosuresTabProps> = ({ roads, onToggl
             <Octagon className="w-6 h-6" />
           </div>
           <div>
-            <h2 className="font-extrabold text-base text-white">Road Closures & Diversion Management</h2>
-            <p className="text-xs text-slate-400">Enforce Administrative Blockades & Trigger Real-Time Civilian Recalculations</p>
+            <h2 className="font-extrabold text-base text-white">Road Closures Management</h2>
+            <p className="text-xs text-slate-400">Enforce Administrative Blockades & Manage Corridor Closures</p>
           </div>
         </div>
 

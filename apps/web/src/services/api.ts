@@ -37,6 +37,25 @@ export class ApiService {
     return res.json();
   }
 
+  public static async register(userData: { name: string; email: string; pass: string; role?: string; department?: string }) {
+    const res = await fetch(`${API_BASE}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: userData.name,
+        email: userData.email,
+        password: userData.pass,
+        role: userData.role,
+        department: userData.department
+      })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Registration failed');
+    }
+    return res.json();
+  }
+
   public static async getLiveTraffic() {
     const res = await fetch(`${API_BASE}/traffic/live`, { headers: this.getHeaders() });
     return res.json();
@@ -121,4 +140,70 @@ export class ApiService {
     const res = await fetch(`${API_BASE}/audit-logs`, { headers: this.getHeaders() });
     return res.json();
   }
+
+  // Google Maps Proxy Methods
+  public static async getDirections(origin: string, destination: string) {
+    const res = await fetch(`${API_BASE}/directions?origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}`);
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || data.error || `Directions API Error (${data.status})`);
+    }
+    return data;
+  }
+
+  public static async getDistanceMatrix(origins: string, destinations: string) {
+    const res = await fetch(`${API_BASE}/distance-matrix?origins=${encodeURIComponent(origins)}&destinations=${encodeURIComponent(destinations)}`);
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || data.error || `Distance Matrix API Error (${data.status})`);
+    }
+    return data;
+  }
+
+  public static async geocodeAddress(address?: string, latlng?: string) {
+    const query = address ? `address=${encodeURIComponent(address)}` : `latlng=${encodeURIComponent(latlng || '')}`;
+    const res = await fetch(`${API_BASE}/geocode?${query}`);
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || data.error || `Geocoding API Error (${data.status})`);
+    }
+    return data;
+  }
+
+  public static async getAnalyticsData() {
+    const res = await fetch(`${API_BASE}/traffic/analytics`);
+    return res.json();
+  }
+
+  public static async updateIncident(id: string, updates: any) {
+    const res = await fetch(`${API_BASE}/incidents/${id}`, {
+      method: 'PUT',
+      headers: this.getHeaders(),
+      body: JSON.stringify(updates)
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to update incident');
+    }
+    return res.json();
+  }
+
+  public static async deleteIncident(id: string) {
+    const res = await fetch(`${API_BASE}/incidents/${id}`, {
+      method: 'DELETE',
+      headers: this.getHeaders()
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to delete incident');
+    }
+    return res.json();
+  }
+
+  public static async getOsmConstruction() {
+    const res = await fetch(`${API_BASE}/incidents/osm-construction`);
+    return res.json();
+  }
 }
+
+

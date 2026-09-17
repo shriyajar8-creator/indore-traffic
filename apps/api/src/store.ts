@@ -3,6 +3,7 @@ import path from 'path';
 import bcrypt from 'bcryptjs';
 import { 
   User, 
+  UserRole,
   RoadSegment, 
   Incident, 
   ConstructionProject, 
@@ -13,8 +14,10 @@ import {
   TrafficKpis,
   CivilianIncidentReport,
   SignalRecommendation,
-  JunctionTrafficData
+  JunctionTrafficData,
+  TrafficSnapshot
 } from './types';
+
 
 const DATA_PATH = path.resolve(__dirname, '../../../data/indore_traffic_dataset.json');
 
@@ -31,11 +34,14 @@ export class TrafficStore {
   private auditLogs: AuditLog[] = [];
   private civilianReports: CivilianIncidentReport[] = [];
   private signalRecommendations: SignalRecommendation[] = [];
+  private snapshots: TrafficSnapshot[] = [];
 
   constructor() {
     this.initUsers();
     this.loadDataset();
+    this.initSnapshots();
   }
+
 
   private initUsers() {
     this.users = [
@@ -111,6 +117,24 @@ export class TrafficStore {
 
   public getUserByEmail(email: string): User | undefined {
     return this.users.find(u => u.email.toLowerCase() === email.toLowerCase());
+  }
+
+  public registerUser(userData: { name: string; email: string; pass: string; role: UserRole; department?: string }): User {
+    const existing = this.getUserByEmail(userData.email);
+    if (existing) {
+      throw new Error('User with this email already exists');
+    }
+    const newUser: User = {
+      id: `usr-${Date.now()}`,
+      name: userData.name,
+      email: userData.email,
+      role: userData.role,
+      department: userData.department || 'GatiRaksha Platform User',
+      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=250&q=80'
+    };
+    this.users.push(newUser);
+    this.userPasswords[userData.email.toLowerCase()] = bcrypt.hashSync(userData.pass, 8);
+    return newUser;
   }
 
   public verifyPassword(email: string, pass: string): boolean {
@@ -227,6 +251,25 @@ export class TrafficStore {
     return newInc;
   }
 
+  public updateIncident(id: string, updates: Partial<Incident>, adminEmail: string, role: any): Incident | undefined {
+    const inc = this.incidents.find(i => i.id === id);
+    if (inc) {
+      Object.assign(inc, updates);
+      this.addAuditLog(adminEmail, role, 'UPDATE_INCIDENT', inc.title, `Updated incident details`);
+    }
+    return inc;
+  }
+
+  public deleteIncident(id: string, adminEmail: string, role: any): boolean {
+    const idx = this.incidents.findIndex(i => i.id === id);
+    if (idx !== -1) {
+      const deleted = this.incidents.splice(idx, 1)[0];
+      this.addAuditLog(adminEmail, role, 'DELETE_INCIDENT', deleted.title, `Deleted incident ${id}`);
+      return true;
+    }
+    return false;
+  }
+
   public updateIncidentStatus(id: string, status: 'ACTIVE' | 'RESOLVED' | 'UNDER_REVIEW', adminEmail: string, role: any): Incident | undefined {
     const inc = this.incidents.find(i => i.id === id);
     if (inc) {
@@ -242,6 +285,137 @@ export class TrafficStore {
     }
     return inc;
   }
+
+  private initSnapshots() {
+    const routes = [
+      { id: 'route-ab-road', name: 'AB Road Corridor', origin: 'Vijay Nagar Square', dest: 'Palasia Square' },
+      { id: 'route-ring-road', name: 'Ring Road East', origin: 'Bengali Square', dest: 'MR-10 Bridge' },
+      { id: 'route-mg-road', name: 'MG Road Center', origin: 'Rajwada', dest: 'Regal Square' },
+      { id: 'route-bhawarkuan', name: 'Bhawarkuan Corridor', origin: 'IT Park', dest: 'Tower Square' },
+      { id: 'route-bypass', name: 'Eastern Bypass Highway', origin: 'Kanadia Interchange', dest: 'Airport Road' }
+    ];
+
+    const now = new Date();
+    // Pre-populate 24-hour historical snapshot data
+    for (let h = 0; h < 24; h++) {
+      const snapTime = new Date(now.getTime() - (24 - h) * 3600 * 1000);
+      const hourLabel = `${h.toString().padStart(2, '0')}:00`;
+
+      routes.forEach(r => {
+        // Higher congestion during peak hours (09:00 - 11:00 & 17:00 - 20:00)
+        let baseCong = 25 + Math.floor(Math.sin(h / 3) * 15);
+        if ((h >= 9 && h <= 11) || (h >= 17 && h <= 20)) {
+          baseCong = Math.min(95, baseCong + 45);
+        }
+
+        const delay = Math.round(baseCong * 0.25);
+        const baseDur = 900;
+        const durInTraffic = baseDur + delay * 60;
+
+        this.snapshots.push({
+          id: `snap-${h}-${r.id}`,
+          timestamp: snapTime.toISOString(),
+          hourLabel,
+          routeId: r.id,
+          routeName: r.name,
+          origin: r.origin,
+          destination: r.dest,
+          baseDurationSec: baseDur,
+          durationInTrafficSec: durInTraffic,
+          delayMinutes: delay,
+          congestionPercentage: baseCong,
+          congestionLevel: baseCong > 80 ? 'CRITICAL' : baseCong > 65 ? 'SEVERE' : baseCong > 45 ? 'HEAVY' : 'MODERATE',
+          avgSpeedKmH: Math.round(50 * (1 - baseCong / 100))
+        });
+      });
+    }
+  }
+
+  public recordTrafficSnapshot(routeId: string, routeName: string, origin: string, destination: string, baseDurSec: number, trafficDurSec: number, congestionPct: number) {
+    const now = new Date();
+    const delayMin = Math.max(0, Math.round((trafficDurSec - baseDurSec) / 60));
+    const snap: TrafficSnapshot = {
+      id: `snap-live-${Date.now()}`,
+      timestamp: now.toISOString(),
+      hourLabel: `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`,
+      routeId,
+      routeName,
+      origin,
+      destination,
+      baseDurationSec: baseDurSec,
+      durationInTrafficSec: trafficDurSec,
+      delayMinutes: delayMin,
+      congestionPercentage: congestionPct,
+      congestionLevel: congestionPct > 80 ? 'CRITICAL' : congestionPct > 65 ? 'SEVERE' : congestionPct > 45 ? 'HEAVY' : 'MODERATE',
+      avgSpeedKmH: Math.round(50 * (1 - congestionPct / 100))
+    };
+    this.snapshots.push(snap);
+    if (this.snapshots.length > 500) this.snapshots.shift();
+    return snap;
+  }
+
+  public getAnalyticsData() {
+    // 1. Congestion by hour of day (Line chart)
+    const hourlyMap: Record<string, { hour: string; abRoad: number; ringRoad: number; mgRoad: number; bhawarkuan: number; bypass: number }> = {};
+
+    for (let h = 0; h < 24; h++) {
+      const label = `${h.toString().padStart(2, '0')}:00`;
+      hourlyMap[label] = { hour: label, abRoad: 30, ringRoad: 25, mgRoad: 35, bhawarkuan: 40, bypass: 20 };
+    }
+
+    this.snapshots.forEach(s => {
+      if (hourlyMap[s.hourLabel]) {
+        if (s.routeId.includes('ab-road')) hourlyMap[s.hourLabel].abRoad = s.congestionPercentage;
+        if (s.routeId.includes('ring-road')) hourlyMap[s.hourLabel].ringRoad = s.congestionPercentage;
+        if (s.routeId.includes('mg-road')) hourlyMap[s.hourLabel].mgRoad = s.congestionPercentage;
+        if (s.routeId.includes('bhawarkuan')) hourlyMap[s.hourLabel].bhawarkuan = s.congestionPercentage;
+        if (s.routeId.includes('bypass')) hourlyMap[s.hourLabel].bypass = s.congestionPercentage;
+      }
+    });
+
+    const hourlyCongestion = Object.values(hourlyMap);
+
+    // 2. Incident count by category (Bar chart)
+    const categoryCounts: Record<string, number> = {
+      construction: 0,
+      accident: 0,
+      waterlogging: 0,
+      roadblock: 0,
+      other: 0
+    };
+
+    this.incidents.forEach(inc => {
+      const cat = (inc.category || inc.type || 'other').toLowerCase();
+      if (cat.includes('construction')) categoryCounts.construction += 1;
+      else if (cat.includes('accident')) categoryCounts.accident += 1;
+      else if (cat.includes('waterlogging')) categoryCounts.waterlogging += 1;
+      else if (cat.includes('block') || cat.includes('closure')) categoryCounts.roadblock += 1;
+      else categoryCounts.other += 1;
+    });
+
+    const incidentCategoryData = Object.entries(categoryCounts).map(([name, count]) => ({
+      name: name.toUpperCase(),
+      count
+    }));
+
+    // 3. Busiest zones ranking
+    const busiestZones = [
+      { name: 'AB Road Corridor (Vijay Nagar -> Palasia)', congestion: 88, status: 'CRITICAL', avgDelayMin: 14 },
+      { name: 'Bhawarkuan Square & University Link', congestion: 76, status: 'SEVERE', avgDelayMin: 9 },
+      { name: 'Rajwada City Center & MG Road', congestion: 68, status: 'HEAVY', avgDelayMin: 7 },
+      { name: 'Ring Road East (Bengali Sq -> MR-10)', congestion: 54, status: 'MODERATE', avgDelayMin: 4 },
+      { name: 'Eastern Bypass Highway Link', congestion: 22, status: 'FREE_FLOW', avgDelayMin: 1 }
+    ];
+
+    return {
+      hourlyCongestion,
+      incidentCategoryData,
+      busiestZones,
+      totalIncidents: this.incidents.length,
+      activeIncidentsCount: this.incidents.filter(i => i.status === 'ACTIVE').length
+    };
+  }
+
 
   public toggleRoadClosure(roadId: string, isClosed: boolean, reason: string, adminEmail: string, role: any): RoadSegment | undefined {
     const road = this.getRoadById(roadId);

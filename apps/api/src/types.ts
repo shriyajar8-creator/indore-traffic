@@ -91,6 +91,7 @@ export interface Incident {
   id: string;
   title: string;
   type: IncidentType;
+  category?: 'construction' | 'accident' | 'waterlogging' | 'roadblock' | 'other';
   severity: IncidentSeverity;
   description: string;
   roadId: string;
@@ -99,12 +100,31 @@ export interface Incident {
   affectedLanes: number;
   startTime: string;
   expectedEndTime: string;
+  expectedResolution?: string;
+  imageUrl?: string;
   recommendedAction: string;
   status: 'ACTIVE' | 'RESOLVED' | 'UNDER_REVIEW';
   reportedByRole: UserRole;
   reportedByEmail?: string;
   verifiedByAdmin?: boolean;
 }
+
+export interface TrafficSnapshot {
+  id: string;
+  timestamp: string;
+  hourLabel: string;
+  routeId: string;
+  routeName: string;
+  origin: string;
+  destination: string;
+  baseDurationSec: number;
+  durationInTrafficSec: number;
+  delayMinutes: number;
+  congestionPercentage: number;
+  congestionLevel: 'LOW' | 'MODERATE' | 'HEAVY' | 'SEVERE' | 'CRITICAL';
+  avgSpeedKmH: number;
+}
+
 
 export interface ConstructionProject {
   id: string;

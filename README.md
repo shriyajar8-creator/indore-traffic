@@ -1,13 +1,13 @@
- INDORE TRAFFIC INTELLIGENCE & RESPONSE PLATFORM
+# 🛡️ GATIRAKSHA - SMART TRAFFIC & INCIDENT RESPONSE PLATFORM
 
-> **Smart India Hackathon (SIH) Flagship Project**  
-> *An Urban Traffic Decision Support System connecting authorities and civilians in real time.*
+> **Smart Urban Traffic & Incident Management System**  
+> *An Intelligent Traffic Decision Support System connecting authorities and civilians in real time.*
 
 ---
 
  Executive Summary & Core Positioning
 
-The **Indore Traffic Intelligence & Response Platform** is **NOT** a simple navigation clone. It is a production-grade, highly reactive command-and-control platform engineered specifically for **Indore, Madhya Pradesh, India**.
+**GatiRaksha** (Smart Traffic Intelligence & Incident Response Platform) is a production-grade, highly reactive command-and-control platform engineered for urban traffic management in **Indore, Madhya Pradesh, India**.
 
 It bridges traffic police, municipal authorities, emergency services, and commuters into a unified real-time loop:
 

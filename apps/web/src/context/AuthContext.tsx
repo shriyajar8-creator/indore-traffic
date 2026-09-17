@@ -6,6 +6,7 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   login: (email: string, pass: string) => Promise<void>;
+  signup: (userData: { name: string; email: string; pass: string; role?: UserRole; department?: string }) => Promise<void>;
   quickLogin: (role: UserRole) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
@@ -42,6 +43,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('indore_token', data.token);
   };
 
+  const signup = async (userData: { name: string; email: string; pass: string; role?: UserRole; department?: string }) => {
+    const data = await ApiService.register(userData);
+    setToken(data.token);
+    setUser(data.user);
+    localStorage.setItem('indore_token', data.token);
+  };
+
   const quickLogin = async (role: UserRole) => {
     const creds: Record<UserRole, { email: string; pass: string }> = {
       ADMIN: { email: 'admin@indoretraffic.demo', pass: 'Admin@123' },
@@ -67,6 +75,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       user,
       token,
       login,
+      signup,
       quickLogin,
       logout,
       isAuthenticated: !!user,

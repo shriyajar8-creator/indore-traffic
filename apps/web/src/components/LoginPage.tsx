@@ -4,9 +4,13 @@ import { UserRole } from '../types';
 import { Activity, ShieldCheck, Lock, Mail, Sparkles, ArrowRight, ShieldAlert } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
-  const { login, quickLogin } = useAuth();
+  const { login, signup, quickLogin } = useAuth();
+  const [authMode, setAuthMode] = useState<'LOGIN' | 'SIGNUP'>('LOGIN');
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState<UserRole>('CIVILIAN');
+  const [department, setDepartment] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -15,19 +19,23 @@ export const LoginPage: React.FC = () => {
     setError(null);
     setLoading(true);
     try {
-      await login(email, password);
+      if (authMode === 'LOGIN') {
+        await login(email, password);
+      } else {
+        await signup({ name, email, pass: password, role, department });
+      }
     } catch (err: any) {
-      setError(err.message || 'Login failed. Please check credentials.');
+      setError(err.message || `${authMode === 'LOGIN' ? 'Login' : 'Registration'} failed.`);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleQuickSelect = async (role: UserRole) => {
+  const handleQuickSelect = async (selectedRole: UserRole) => {
     setError(null);
     setLoading(true);
     try {
-      await quickLogin(role);
+      await quickLogin(selectedRole);
     } catch (err: any) {
       setError(err.message || 'Quick login failed.');
     } finally {
@@ -43,14 +51,12 @@ export const LoginPage: React.FC = () => {
       {/* Header */}
       <header className="px-8 py-6 flex items-center justify-between border-b border-slate-800/80 bg-slate-900/40 backdrop-blur-md z-10">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/40 flex items-center justify-center text-blue-400">
-            <Activity className="w-6 h-6 animate-pulse" />
-          </div>
+          <img src="/gatiraksha-logo.png" alt="GatiRaksha Logo" className="w-10 h-10 rounded-xl border border-blue-500/40 object-cover shadow-md" />
           <div>
-            <h1 className="font-extrabold text-base text-white tracking-wider font-sans uppercase">
-              Indore Traffic Intelligence
+            <h1 className="font-extrabold text-base text-white tracking-wider font-sans uppercase flex items-center gap-1.5">
+              <span className="text-blue-400">GatiRaksha</span> Intelligence
             </h1>
-            <p className="text-[10px] text-slate-400">Urban Decision Support Platform • SIH 2026 Core</p>
+            <p className="text-[10px] text-slate-400">Urban Decision Support & Incident Response Platform</p>
           </div>
         </div>
 
@@ -62,17 +68,33 @@ export const LoginPage: React.FC = () => {
 
       {/* Main Login Card Container */}
       <div className="flex-1 flex items-center justify-center p-6 z-10">
-        <div className="bg-[#0F172A]/90 border border-slate-800 p-8 rounded-2xl max-w-md w-full shadow-2xl space-y-6 backdrop-blur-xl">
+        <div className="bg-[#0F172A]/90 border border-slate-800 p-8 rounded-2xl max-w-md w-full shadow-2xl space-y-5 backdrop-blur-xl">
           <div className="text-center space-y-2">
-            <div className="w-12 h-12 rounded-2xl bg-blue-600/20 border border-blue-500/30 mx-auto flex items-center justify-center text-blue-400">
-              <ShieldCheck className="w-7 h-7" />
-            </div>
+            <img src="/gatiraksha-logo.png" alt="GatiRaksha Logo" className="w-14 h-14 rounded-2xl border border-blue-500/40 mx-auto object-cover shadow-xl" />
             <h2 className="text-xl font-extrabold text-white tracking-tight font-sans">
-              INDORE TRAFFIC INTELLIGENCE
+              GATIRAKSHA COMMAND
             </h2>
             <p className="text-xs text-slate-400">
-              Smart Traffic Command & Response Platform
+              Smart Traffic Command & Incident Response Platform
             </p>
+          </div>
+
+          {/* Mode Switcher Tabs */}
+          <div className="bg-slate-950 p-1 rounded-xl border border-slate-800 flex items-center text-xs font-bold">
+            <button
+              type="button"
+              onClick={() => { setAuthMode('LOGIN'); setError(null); }}
+              className={`flex-1 py-2 rounded-lg transition ${authMode === 'LOGIN' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
+            >
+              SIGN IN
+            </button>
+            <button
+              type="button"
+              onClick={() => { setAuthMode('SIGNUP'); setError(null); }}
+              className={`flex-1 py-2 rounded-lg transition ${authMode === 'SIGNUP' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
+            >
+              CREATE ACCOUNT
+            </button>
           </div>
 
           {error && (
@@ -82,16 +104,30 @@ export const LoginPage: React.FC = () => {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+          <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
+            {authMode === 'SIGNUP' && (
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">Full Name</label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g. Inspector Ramesh Sharma"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-blue-500"
+                  required
+                />
+              </div>
+            )}
+
             <div>
-              <label className="block text-slate-300 font-semibold mb-1.5">Email Address</label>
+              <label className="block text-slate-300 font-semibold mb-1">Email Address</label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@indoretraffic.demo"
+                  placeholder={authMode === 'LOGIN' ? "admin@indoretraffic.demo" : "officer@gatiraksha.gov.in"}
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-white focus:outline-none focus:border-blue-500"
                   required
                 />
@@ -99,7 +135,7 @@ export const LoginPage: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-slate-300 font-semibold mb-1.5">Password</label>
+              <label className="block text-slate-300 font-semibold mb-1">Password</label>
               <div className="relative">
                 <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
                 <input
@@ -113,12 +149,42 @@ export const LoginPage: React.FC = () => {
               </div>
             </div>
 
+            {authMode === 'SIGNUP' && (
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Account Role</label>
+                  <select
+                    value={role}
+                    onChange={(e) => setRole(e.target.value as UserRole)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-white focus:outline-none"
+                  >
+                    <option value="CIVILIAN">Civilian / Commuter</option>
+                    <option value="TRAFFIC_POLICE">Traffic Police</option>
+                    <option value="ROAD_DEPARTMENT">Road Dept (PWD)</option>
+                    <option value="EMERGENCY_RESPONSE">Emergency 108</option>
+                    <option value="ADMIN">Command Admin</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-semibold mb-1">Department</label>
+                  <input
+                    type="text"
+                    value={department}
+                    onChange={(e) => setDepartment(e.target.value)}
+                    placeholder="e.g. Zone 1 Police"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none"
+                  />
+                </div>
+              </div>
+            )}
+
             <button
               type="submit"
               disabled={loading}
               className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold py-3 rounded-xl shadow-xl flex items-center justify-center space-x-2 uppercase tracking-wider text-xs transition"
             >
-              <span>{loading ? 'AUTHENTICATING...' : 'LOGIN TO PLATFORM'}</span>
+              <span>{loading ? 'AUTHENTICATING...' : authMode === 'LOGIN' ? 'LOGIN TO PLATFORM' : 'REGISTER & START'}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>

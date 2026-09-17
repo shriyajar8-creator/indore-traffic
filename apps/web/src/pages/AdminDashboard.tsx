@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { RoadSegment, Incident, ConstructionProject, TrafficKpis, ReroutePlan, SystemNotification, JunctionTrafficData } from '../types';
 import { ApiService } from '../services/api';
-import { AdminTopBar } from '../components/AdminTopBar';
+import { AdminTopBar, DashboardRole } from '../components/AdminTopBar';
 import { AdminSidebar } from '../components/AdminSidebar';
 import { KpiCardsSection } from '../components/KpiCard';
 import { IndoreMap } from '../components/IndoreMap';
@@ -21,6 +21,7 @@ import { EmergencyTab } from '../components/tabs/EmergencyTab';
 import { ReportsLogsTab } from '../components/tabs/ReportsLogsTab';
 import { SettingsTab } from '../components/tabs/SettingsTab';
 import { useAuth } from '../context/AuthContext';
+import { Siren, Shield, Briefcase, Zap, AlertCircle } from 'lucide-react';
 import { 
   BarChart, 
   Bar, 
@@ -35,6 +36,9 @@ import {
 export const AdminDashboard: React.FC = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeRole, setActiveRole] = useState<DashboardRole>('EXECUTIVE');
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [roads, setRoads] = useState<RoadSegment[]>([]);
   const [junctions, setJunctions] = useState<JunctionTrafficData[]>([]);
   const [incidents, setIncidents] = useState<Incident[]>([]);
@@ -61,6 +65,9 @@ export const AdminDashboard: React.FC = () => {
   const [showTimelineModal, setShowTimelineModal] = useState(false);
   const [hourlyData, setHourlyData] = useState<any[]>([]);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [analyticsData, setAnalyticsData] = useState<any>(null);
+  const [osmItems, setOsmItems] = useState<any[]>([]);
+  const [pickedCoords, setPickedCoords] = useState<{ lat: number; lng: number } | null>(null);
 
   useEffect(() => {
     fetchInitialData();
@@ -86,8 +93,8 @@ export const AdminDashboard: React.FC = () => {
       setIncidents(prev => [data.incident, ...prev]);
     });
 
-    socket.on('reroute.created', (data) => {
-      setActiveReroutePlan(data.plan);
+    socket.on('traffic.snapshot', (data) => {
+      setAnalyticsData(data);
     });
 
     return () => {
@@ -95,7 +102,7 @@ export const AdminDashboard: React.FC = () => {
       socket.off('traffic.updated');
       socket.off('kpi.updated');
       socket.off('incident.created');
-      socket.off('reroute.created');
+      socket.off('traffic.snapshot');
     };
   }, []);
 
@@ -113,6 +120,12 @@ export const AdminDashboard: React.FC = () => {
 
       const logs = await ApiService.getAuditLogs();
       setAuditLogs(logs.auditLogs || []);
+
+      const analytics = await ApiService.getAnalyticsData();
+      setAnalyticsData(analytics);
+
+      const osm = await ApiService.getOsmConstruction();
+      setOsmItems(osm.items || []);
     } catch (e) {
       console.error('Failed to load live traffic:', e);
     }
@@ -158,51 +171,66 @@ export const AdminDashboard: React.FC = () => {
     fetchInitialData();
   };
 
+  const handleDeleteIncident = async (id: string) => {
+    await ApiService.deleteIncident(id);
+    fetchInitialData();
+  };
+
+  const handleEditIncident = async (id: string, updates: any) => {
+    await ApiService.updateIncident(id, updates);
+    fetchInitialData();
+  };
+
+
   return (
-    <div className="min-h-screen bg-[#0B0F19] text-slate-100 flex flex-col font-sans select-none overflow-x-hidden">
+    <div className={`min-h-screen ${theme === 'dark' ? 'bg-[#0B0F19] text-slate-100' : 'bg-slate-950 text-slate-100'} flex flex-col font-sans select-none overflow-x-hidden transition-colors`}>
       {/* Top Command Bar */}
       <AdminTopBar
         kpis={kpis}
         activeTab={activeTab}
         onSelectTab={setActiveTab}
+        theme={theme}
+        onToggleTheme={() => setTheme(prev => prev === 'dark' ? 'light' : 'dark')}
+        onToggleMobileMenu={() => setMobileMenuOpen(prev => !prev)}
       />
 
       <div className="flex flex-1">
         {/* Sidebar */}
-        <AdminSidebar activeTab={activeTab} onSelectTab={setActiveTab} />
+        <AdminSidebar 
+          activeTab={activeTab} 
+          onSelectTab={setActiveTab} 
+          mobileMenuOpen={mobileMenuOpen}
+          onCloseMobileMenu={() => setMobileMenuOpen(false)}
+        />
 
         {/* Main Content Area */}
-        <main className="flex-1 p-4 space-y-4 overflow-y-auto max-w-[calc(100vw-256px)]">
-          {/* Live KPI Header Cards */}
-          <KpiCardsSection kpis={kpis} />
+        <main className="flex-1 p-3 md:p-4 space-y-4 overflow-y-auto w-full md:max-w-[calc(100vw-256px)]">
+
+          {/* Upper Section Header Cards - Only shown on Dashboard and Analytics tabs */}
+          {(activeTab === 'dashboard' || activeTab === 'analytics') && (
+            <KpiCardsSection kpis={kpis} />
+          )}
 
           {/* TAB 1: DASHBOARD */}
           {activeTab === 'dashboard' && (
-            <div className="space-y-4">
-              {/* SIH Judge Demo Simulation Mode Panel */}
-              <DemoSimulationEngine
-                onSimulateAccident={handleSimulateAccident}
-                onSimulateClosure={() => handleToggleClosure('road-mg-city', true)}
-                onSimulateSurge={() => fetchInitialData()}
-              />
 
-              {/* Main Map & Live Incident Drawer Grid */}
+            <div className="space-y-4">
+              {/* Main Map & Live Incident Feed Grid */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-                <div className="lg:col-span-8 h-[550px]">
+                <div className="lg:col-span-8 h-[580px]">
                   <IndoreMap
                     roads={roads}
                     junctions={junctions}
                     incidents={incidents}
                     constructions={constructions}
-                    activeAlternateRoutes={activeReroutePlan?.alternateRoutes || []}
+                    activeAlternateRoutes={[]}
                     selectedRoad={selectedRoad}
                     onSelectRoad={(road) => setSelectedRoad(road)}
                     onBlockRoad={(id) => handleToggleClosure(id, true)}
-                    onGenerateReroute={(id) => handleCalculatePlan(id)}
                   />
                 </div>
 
-                <div className="lg:col-span-4 bg-[#0F172A] border border-slate-800 rounded-xl p-4 flex flex-col justify-between space-y-4 shadow-xl h-[550px] overflow-y-auto">
+                <div className="lg:col-span-4 bg-[#0F172A] border border-slate-800 rounded-xl p-4 flex flex-col justify-between space-y-4 shadow-xl h-[580px] overflow-y-auto">
                   {selectedRoad ? (
                     <div className="space-y-3">
                       <div className="flex items-center justify-between border-b border-slate-800 pb-2">
@@ -240,21 +268,14 @@ export const AdminDashboard: React.FC = () => {
                         </div>
                       </div>
 
-                      <div className="pt-2 space-y-2">
+                      <div className="pt-2">
                         <button
                           onClick={() => handleToggleClosure(selectedRoad.id, !selectedRoad.isClosed)}
                           className={`w-full font-bold text-xs py-2 px-3 rounded-lg flex items-center justify-center space-x-1.5 ${
                             selectedRoad.isClosed ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'bg-red-600 hover:bg-red-500 text-white'
                           }`}
                         >
-                          <span>{selectedRoad.isClosed ? 'OPEN ROAD DIVERSION' : 'BLOCK / CLOSE CORRIDOR'}</span>
-                        </button>
-
-                        <button
-                          onClick={() => handleCalculatePlan(selectedRoad.id)}
-                          className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs py-2 px-3 rounded-lg flex items-center justify-center space-x-1.5"
-                        >
-                          <span>CALCULATE DYNAMIC REROUTE</span>
+                          <span>{selectedRoad.isClosed ? 'OPEN ROAD' : 'BLOCK / CLOSE CORRIDOR'}</span>
                         </button>
                       </div>
                     </div>
@@ -267,7 +288,7 @@ export const AdminDashboard: React.FC = () => {
                         </span>
                       </div>
 
-                      <div className="space-y-2.5 overflow-y-auto max-h-[440px]">
+                      <div className="space-y-2.5 overflow-y-auto max-h-[470px]">
                         {incidents.map((inc) => (
                           <div key={inc.id} className="bg-slate-900 border border-slate-800 rounded-lg p-3 space-y-1 text-xs">
                             <div className="flex items-center justify-between">
@@ -289,81 +310,22 @@ export const AdminDashboard: React.FC = () => {
 
               {/* Traffic Change Analytics Table */}
               <TrafficAnalyticsTable roads={roads} onSelectRoad={(r) => setSelectedRoad(r)} />
-
-              {/* Bottom Velocity Graph & Audit Log */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-[#0F172A] border border-slate-800 rounded-xl p-4 space-y-3 shadow-xl">
-                  <h3 className="font-bold text-xs text-slate-300 uppercase tracking-wider">24-Hour Velocity & Congestion Profile</h3>
-                  <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={hourlyData}>
-                        <XAxis dataKey="hour" stroke="#64748B" fontSize={10} />
-                        <YAxis stroke="#64748B" fontSize={10} />
-                        <Tooltip contentStyle={{ backgroundColor: '#1E293B', borderColor: '#334155', borderRadius: '8px' }} />
-                        <Line type="monotone" dataKey="avgSpeed" stroke="#3B82F6" strokeWidth={3} name="Avg Speed (km/h)" />
-                        <Line type="monotone" dataKey="avgCongestion" stroke="#EF4444" strokeWidth={2} name="Congestion (%)" />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-
-                <div className="bg-[#0F172A] border border-slate-800 rounded-xl p-4 space-y-3 shadow-xl">
-                  <h3 className="font-bold text-xs text-slate-300 uppercase tracking-wider">Administrative Intervention Audit Logs</h3>
-                  <div className="space-y-2 max-h-64 overflow-y-auto text-xs">
-                    {auditLogs.map((log) => (
-                      <div key={log.id} className="bg-slate-900 border border-slate-800 p-2.5 rounded-lg flex items-center justify-between">
-                        <div>
-                          <span className="font-bold text-blue-400">{log.action}</span>
-                          <p className="text-[11px] text-slate-300">{log.details}</p>
-                        </div>
-                        <span className="text-[9px] text-slate-500 font-mono">{log.timestamp.slice(11, 19)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
             </div>
           )}
 
-          {/* TAB 2: LIVE TRAFFIC */}
-          {activeTab === 'live-traffic' && (
-            <div className="space-y-4">
-              <div className="h-[650px]">
-                <IndoreMap
-                  roads={roads}
-                  junctions={junctions}
-                  incidents={incidents}
-                  constructions={constructions}
-                  selectedRoad={selectedRoad}
-                  onSelectRoad={(road) => setSelectedRoad(road)}
-                />
-              </div>
-              <TrafficAnalyticsTable roads={roads} onSelectRoad={(r) => setSelectedRoad(r)} />
-            </div>
-          )}
-
-          {/* TAB 3: TRAFFIC INCIDENTS */}
+          {/* TAB: INCIDENTS & ACCIDENTS */}
           {activeTab === 'incidents' && (
             <IncidentsTab
               incidents={incidents}
               roads={roads}
               onCreateIncident={handleCreateIncident}
               onUpdateStatus={handleUpdateIncidentStatus}
+              onDeleteIncident={handleDeleteIncident}
+              onEditIncident={handleEditIncident}
             />
           )}
 
-          {/* TAB 4: ACCIDENTS */}
-          {activeTab === 'accidents' && (
-            <AccidentsTab
-              incidents={incidents}
-              roads={roads}
-              onSimulateAccident={handleSimulateAccident}
-              onBlockRoad={(id) => handleToggleClosure(id, true)}
-              onCalculateReroute={(id) => handleCalculatePlan(id)}
-            />
-          )}
-
-          {/* TAB 5: ROAD CLOSURES */}
+          {/* TAB: ROAD CLOSURES */}
           {activeTab === 'closures' && (
             <RoadClosuresTab
               roads={roads}
@@ -371,7 +333,7 @@ export const AdminDashboard: React.FC = () => {
             />
           )}
 
-          {/* TAB 6: CONSTRUCTION */}
+          {/* TAB: CONSTRUCTION */}
           {activeTab === 'construction' && (
             <ConstructionTab
               constructions={constructions}
@@ -379,28 +341,17 @@ export const AdminDashboard: React.FC = () => {
             />
           )}
 
-          {/* TAB 7: REROUTING */}
-          {activeTab === 'rerouting' && (
-            <RerouteEngineDrawer
-              plan={activeReroutePlan}
-              roads={roads}
-              onCalculatePlan={handleCalculatePlan}
-              onApprovePlan={handleApprovePlan}
-              onClose={() => setActiveTab('dashboard')}
-            />
-          )}
-
-          {/* TAB 8: PREDICTIONS */}
+          {/* TAB: PREDICTIONS */}
           {activeTab === 'predictions' && (
             <PredictionPanel roads={roads} />
           )}
 
-          {/* TAB 9: ROAD NETWORK */}
+          {/* TAB: ROAD NETWORK */}
           {activeTab === 'network' && (
             <RoadNetworkTab roads={roads} />
           )}
 
-          {/* TAB 10: DEPARTMENTS */}
+          {/* TAB: DEPARTMENTS */}
           {activeTab === 'departments' && (
             <DepartmentDashboard
               role={user?.role || 'ADMIN'}
@@ -410,38 +361,27 @@ export const AdminDashboard: React.FC = () => {
             />
           )}
 
-          {/* TAB 11: EMERGENCY RESPONSE */}
+          {/* TAB: EMERGENCY RESPONSE */}
           {activeTab === 'emergency' && (
             <EmergencyTab incidents={incidents} />
           )}
 
-          {/* TAB 12: REPORTS & LOGS */}
+          {/* TAB: REPORTS & LOGS */}
           {activeTab === 'reports' && (
-            <ReportsLogsTab auditLogs={auditLogs} />
+            <ReportsLogsTab auditLogs={auditLogs} onRefreshLogs={fetchInitialData} />
           )}
 
-          {/* TAB 13: ANALYTICS */}
+          {/* TAB: ANALYTICS */}
           {activeTab === 'analytics' && (
             <JunctionTrafficReport junctions={junctions} />
           )}
 
-          {/* TAB 14: SYSTEM SETTINGS */}
+          {/* TAB: SYSTEM SETTINGS */}
           {activeTab === 'settings' && (
             <SettingsTab />
           )}
         </main>
       </div>
-
-      {/* Reroute Engine Drawer Overlay if opened via map click */}
-      {showRerouteDrawer && activeTab !== 'rerouting' && (
-        <RerouteEngineDrawer
-          plan={activeReroutePlan}
-          roads={roads}
-          onCalculatePlan={handleCalculatePlan}
-          onApprovePlan={handleApprovePlan}
-          onClose={() => setShowRerouteDrawer(false)}
-        />
-      )}
 
       {/* Accident Event Timeline Modal */}
       {showTimelineModal && (

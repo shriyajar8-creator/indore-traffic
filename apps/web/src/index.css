@@ -52,6 +52,10 @@
   background: #0F172A !important;
 }
 
+.leaflet-tile-pane {
+  filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3);
+}
+
 .leaflet-popup-content-wrapper {
   background: #1E293B !important;
   color: #F8FAFC !important;
