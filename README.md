@@ -1,11 +1,11 @@
-# 🚦 INDORE TRAFFIC INTELLIGENCE & RESPONSE PLATFORM
+ INDORE TRAFFIC INTELLIGENCE & RESPONSE PLATFORM
 
 > **Smart India Hackathon (SIH) Flagship Project**  
 > *An Urban Traffic Decision Support System connecting authorities and civilians in real time.*
 
 ---
 
-## 📌 Executive Summary & Core Positioning
+ Executive Summary & Core Positioning
 
 The **Indore Traffic Intelligence & Response Platform** is **NOT** a simple navigation clone. It is a production-grade, highly reactive command-and-control platform engineered specifically for **Indore, Madhya Pradesh, India**.
 
@@ -15,7 +15,7 @@ $$\text{MONITOR} \longrightarrow \text{DETECT} \longrightarrow \text{DECIDE} \lo
 
 ---
 
-## 🔑 Demo Credentials (Quick Hackathon Verification)
+ Demo Credentials (Quick Hackathon Verification)
 
 The system includes pre-seeded demo accounts with role-based access control (RBAC):
 
@@ -29,7 +29,7 @@ The system includes pre-seeded demo accounts with role-based access control (RBA
 
 ---
 
-## 🏗 System Architecture & Monorepo Structure
+ System Architecture & Monorepo Structure
 
 ```
 /indore-traffic-intelligence
@@ -49,7 +49,7 @@ The system includes pre-seeded demo accounts with role-based access control (RBA
 
 ---
 
-## ⚡ Real-Time WebSocket Events
+ Real-Time WebSocket Events
 
 The platform uses WebSocket (`socket.io`) events to propagate state updates instantaneously across connected Admin Command Centers and Civilian applications:
 
@@ -62,7 +62,7 @@ The platform uses WebSocket (`socket.io`) events to propagate state updates inst
 
 ---
 
-## 🗺 GIS & Map Provider Abstraction Layer
+ GIS & Map Provider Abstraction Layer
 
 The frontend incorporates a decoupled GIS service (`MapService.ts`) that decouples map rendering logic from UI components. It supports pluggable map providers:
 
@@ -72,15 +72,13 @@ The frontend incorporates a decoupled GIS service (`MapService.ts`) that decoupl
 - **Mapbox**
 - **Google Maps Platform**
 
----
+--Quick Start & Local Setup
 
-## 🚀 Quick Start & Local Setup
-
-### Prerequisites
+Prerequisites
 - Node.js (v18+ or v20+)
 - npm (v9+)
 
-### Installation Commands
+ Installation Commands
 
 ```bash
 # 1. Install dependencies across monorepo
@@ -99,7 +97,7 @@ Visit the application in your browser:
 
 ---
 
-## 🐳 Docker Deployment
+ Docker Deployment
 
 To launch the complete production stack (PostgreSQL + PostGIS, Redis, API, Frontend):
 
@@ -109,7 +107,7 @@ docker-compose up --build -d
 
 ---
 
-## 🧪 30-Second SIH Judge Demonstration Flow
+ 30-Second SIH Judge Demonstration Flow
 
 1. Open `http://localhost:5173` in Admin Command Center mode.
 2. Click the glowing **`SIMULATE ACCIDENT`** button in the top bar.
@@ -124,7 +122,7 @@ docker-compose up --build -d
 
 ---
 
-## 📊 REST API Reference Summary
+📊 REST API Reference Summary
 
 - `POST /api/auth/login` - Authenticate user & get JWT token.
 - `GET /api/traffic/live` - Retrieve live roads, KPIs, active incidents, and signal guidance.
@@ -139,7 +137,7 @@ docker-compose up --build -d
 
 ---
 
-## 🔒 Security & Auditability
+🔒 Security & Auditability
 
 - **JWT Authentication** with password hashing (`bcryptjs`).
 - **Role-Based Access Control (RBAC)** restricting road closure and reroute authority.
@@ -147,5 +145,5 @@ docker-compose up --build -d
 
 ---
 
-## 📄 License
+📄 License
 Designed & Developed for Smart India Hackathon (SIH) 2026.
