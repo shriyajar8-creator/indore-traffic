@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, UserRole } from '../types';
-import { ApiService } from '../services/api';
+import { ApiService, API_BASE } from '../services/api';
 
 interface AuthContextType {
   user: User | null;
@@ -21,7 +21,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     if (token) {
-      fetch('/api/auth/me', {
+      fetch(`${API_BASE}/auth/me`, {
         headers: { Authorization: `Bearer ${token}` }
       })
         .then(res => res.json())
@@ -43,7 +43,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('indore_token', data.token);
   };
 
-  const signup = async (userData: { name: string; email: string; pass: string; role?: UserRole; department?: string }) => {
+  const signup = async (userData: {
+    name: string;
+    email: string;
+    pass: string;
+    role?: UserRole;
+    department?: string;
+  }) => {
     const data = await ApiService.register(userData);
     setToken(data.token);
     setUser(data.user);
@@ -52,13 +58,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const quickLogin = async (role: UserRole) => {
     const creds: Record<UserRole, { email: string; pass: string }> = {
-      ADMIN: { email: 'admin@indoretraffic.demo', pass: 'Admin@123' },
-      TRAFFIC_POLICE: { email: 'police@indoretraffic.demo', pass: 'Police@123' },
-      ROAD_DEPARTMENT: { email: 'roads@indoretraffic.demo', pass: 'Roads@123' },
-      EMERGENCY_RESPONSE: { email: 'emergency@indoretraffic.demo', pass: 'Emergency@123' },
-      CIVILIAN: { email: 'user@indoretraffic.demo', pass: 'User@123' }
+      ADMIN: {
+        email: 'admin@indoretraffic.demo',
+        pass: 'Admin@123'
+      },
+      TRAFFIC_POLICE: {
+        email: 'police@indoretraffic.demo',
+        pass: 'Police@123'
+      },
+      ROAD_DEPARTMENT: {
+        email: 'roads@indoretraffic.demo',
+        pass: 'Roads@123'
+      },
+      EMERGENCY_RESPONSE: {
+        email: 'emergency@indoretraffic.demo',
+        pass: 'Emergency@123'
+      },
+      CIVILIAN: {
+        email: 'user@indoretraffic.demo',
+        pass: 'User@123'
+      }
     };
+
     const c = creds[role];
+
     if (c) {
       await login(c.email, c.pass);
     }
@@ -71,16 +94,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      token,
-      login,
-      signup,
-      quickLogin,
-      logout,
-      isAuthenticated: !!user,
-      isAdmin: user?.role === 'ADMIN' || user?.role === 'TRAFFIC_POLICE' || user?.role === 'ROAD_DEPARTMENT' || user?.role === 'EMERGENCY_RESPONSE'
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        login,
+        signup,
+        quickLogin,
+        logout,
+        isAuthenticated: !!user,
+        isAdmin:
+          user?.role === 'ADMIN' ||
+          user?.role === 'TRAFFIC_POLICE' ||
+          user?.role === 'ROAD_DEPARTMENT' ||
+          user?.role === 'EMERGENCY_RESPONSE'
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -88,6 +117,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 export const useAuth = () => {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+
+  if (!ctx) {
+    throw new Error('useAuth must be used within AuthProvider');
+  }
+
   return ctx;
 };
