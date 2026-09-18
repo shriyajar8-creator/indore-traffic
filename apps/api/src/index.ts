@@ -498,7 +498,11 @@ app.post('/api/incidents', authenticateToken, requireRole(adminOrAuthorityRoles)
     verifiedByAdmin: true
   });
 
-  broadcastEvent('incident.created', { incident });
+  const notif = store.getNotifications().find(n => n.incidentId === incident.id);
+  broadcastEvent('incident.created', { incident, notification: notif });
+  if (notif) {
+    broadcastEvent('alert.broadcast', { notification: notif });
+  }
   broadcastEvent('traffic.updated', { roads: store.getRoads() });
 
   return res.status(201).json({ incident });
@@ -506,6 +510,16 @@ app.post('/api/incidents', authenticateToken, requireRole(adminOrAuthorityRoles)
 
 app.get('/api/traffic/analytics', (req: Request, res: Response) => {
   return res.json(store.getAnalyticsData());
+});
+
+app.get('/api/traffic/speed-history', (req: Request, res: Response) => {
+  const range = (req.query.range as any) || '24h';
+  return res.json({ speedHistory: store.getSpeedHistory(range) });
+});
+
+app.get('/api/traffic/accident-hotspots', (req: Request, res: Response) => {
+  const range = (req.query.range as any) || 'ALL';
+  return res.json({ accidentHotspots: store.getAccidentHotspots(range) });
 });
 
 app.get('/api/incidents/osm-construction', async (req: Request, res: Response) => {
@@ -534,7 +548,11 @@ app.put('/api/incidents/:id', authenticateToken, requireRole(adminOrAuthorityRol
   const updated = store.updateIncident(req.params.id, req.body, req.user!.email, req.user!.role);
   if (!updated) return res.status(404).json({ error: 'Incident not found' });
 
-  broadcastEvent('incident.updated', { incident: updated });
+  const notif = store.getNotifications().find(n => n.incidentId === updated.id);
+  broadcastEvent('incident.updated', { incident: updated, notification: notif });
+  if (notif) {
+    broadcastEvent('alert.broadcast', { notification: notif });
+  }
   broadcastEvent('traffic.updated', { roads: store.getRoads() });
 
   return res.json({ incident: updated });
@@ -544,7 +562,7 @@ app.delete('/api/incidents/:id', authenticateToken, requireRole(adminOrAuthority
   const success = store.deleteIncident(req.params.id, req.user!.email, req.user!.role);
   if (!success) return res.status(404).json({ error: 'Incident not found' });
 
-  broadcastEvent('incident.deleted', { id: req.params.id });
+  broadcastEvent('incident.deleted', { id: req.params.id, incidentId: req.params.id });
   broadcastEvent('traffic.updated', { roads: store.getRoads() });
 
   return res.json({ success: true, message: 'Incident deleted successfully' });
@@ -555,7 +573,11 @@ app.patch('/api/incidents/:id', authenticateToken, requireRole(adminOrAuthorityR
   const updated = store.updateIncidentStatus(req.params.id, status, req.user!.email, req.user!.role);
   if (!updated) return res.status(404).json({ error: 'Incident not found' });
 
-  broadcastEvent('incident.updated', { incident: updated });
+  const notif = store.getNotifications().find(n => n.incidentId === updated.id);
+  broadcastEvent('incident.updated', { incident: updated, notification: notif });
+  if (notif) {
+    broadcastEvent('alert.broadcast', { notification: notif });
+  }
   broadcastEvent('traffic.updated', { roads: store.getRoads() });
 
   return res.json({ incident: updated });
@@ -573,7 +595,11 @@ app.post('/api/closures', authenticateToken, requireRole(adminOrAuthorityRoles),
   const road = store.toggleRoadClosure(roadId, isClosed, reason, req.user!.email, req.user!.role);
   if (!road) return res.status(404).json({ error: 'Road not found' });
 
-  broadcastEvent(isClosed ? 'road.closed' : 'road.opened', { roadId, road, reason });
+  const notif = store.getNotifications().find(n => n.affectedRoadId === roadId);
+  broadcastEvent(isClosed ? 'road.closed' : 'road.opened', { roadId, road, reason, notification: notif });
+  if (notif) {
+    broadcastEvent('alert.broadcast', { notification: notif });
+  }
   broadcastEvent('traffic.updated', { roads: store.getRoads() });
 
   return res.json({ road });

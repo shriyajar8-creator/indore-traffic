@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { RoadSegment, Incident, AlternateRoute, SystemNotification } from '../types';
 import { IndoreMap } from './IndoreMap';
 import { useAuth } from '../context/AuthContext';
-import { ApiService } from '../services/api';
+import { ApiService, API_BASE } from '../services/api';
 import { 
   Search, 
   Navigation, 
@@ -100,22 +100,25 @@ export const CivilianApp: React.FC<CivilianAppProps> = ({
       const data = await ApiService.getLiveTraffic();
       if (data.roads) setLiveRoads(data.roads);
       if (data.incidents) setLiveIncidents(data.incidents);
-      const notifRes = await fetch('/api/notifications');
-      const notifData = await notifRes.json();
-      if (notifData.notifications) setLiveNotifications(notifData.notifications);
+
+      const notifRes = await fetch(`${API_BASE}/notifications`);
+      if (notifRes.ok) {
+        const notifData = await notifRes.json();
+        if (notifData.notifications) setLiveNotifications(notifData.notifications);
+      }
     } catch (err) {
       console.error('Error refreshing live traffic data:', err);
     }
   };
 
-  // Initial Route Fetch & 10s Live Sync Polling
+  // Initial Route Fetch & 5s Live Sync Polling
   useEffect(() => {
     fetchDirectionsRoute(origin, destination);
     refreshLiveData();
 
     const pollInterval = setInterval(() => {
       refreshLiveData();
-    }, 10000);
+    }, 5000);
 
     return () => clearInterval(pollInterval);
   }, []);
@@ -155,17 +158,22 @@ export const CivilianApp: React.FC<CivilianAppProps> = ({
     });
 
     socket.on('alert.broadcast', (data: { notification: SystemNotification }) => {
-      setActiveAlert(data.notification);
-      setToastBanner(`🚨 DEPT ADVISORY: ${data.notification.title} - ${data.notification.message}`);
-      setShowRerouteModal(true);
-      if (autoRerouteEnabled) {
-        setRouteSwitched(true);
+      if (data.notification) {
+        setActiveAlert(data.notification);
+        setToastBanner(`${data.notification.title} - ${data.notification.message}`);
+        if (data.notification.type === 'CRITICAL' || data.notification.type === 'HIGH') {
+          setShowRerouteModal(true);
+          if (autoRerouteEnabled) {
+            setRouteSwitched(true);
+          }
+        }
       }
       refreshLiveData();
     });
 
     socket.on('road.closed', (data: any) => {
-      setToastBanner(`⚠️ TRAFFIC ALERT: Corridor Blocked by Authority. Auto-Reroute active.`);
+      const roadName = data.road?.name || data.roadId || 'Corridor';
+      setToastBanner(`🛑 ROAD CLOSED: ${roadName} blocked by authorities. Auto-Reroute active.`);
       setShowRerouteModal(true);
       if (autoRerouteEnabled) {
         setRouteSwitched(true);
@@ -173,21 +181,35 @@ export const CivilianApp: React.FC<CivilianAppProps> = ({
       refreshLiveData();
     });
 
-    socket.on('road.opened', () => {
-      setToastBanner(`✅ ROAD REOPENED: Corridor clear for traffic flow.`);
+    socket.on('road.opened', (data: any) => {
+      const roadName = data.road?.name || data.roadId || 'Corridor';
+      setToastBanner(`✅ ROAD REOPENED: ${roadName} clear for traffic flow.`);
       refreshLiveData();
     });
 
     socket.on('incident.created', (data: any) => {
-      setToastBanner(`🚨 LIVE INCIDENT: ${data.incident?.title || 'Obstacle reported on corridor'}`);
+      const inc = data.incident;
+      const title = inc?.title || 'Obstacle reported on corridor';
+      const locStr = inc?.location ? ` (${inc.location.lat.toFixed(4)}, ${inc.location.lng.toFixed(4)})` : '';
+      setToastBanner(`🚨 LIVE INCIDENT: ${title}${locStr}`);
+      if (inc?.severity === 'CRITICAL' || inc?.severity === 'HIGH') {
+        setShowRerouteModal(true);
+      }
       refreshLiveData();
     });
 
-    socket.on('incident.updated', () => {
+    socket.on('incident.updated', (data: any) => {
+      const inc = data.incident;
+      if (inc?.status === 'RESOLVED') {
+        setToastBanner(`✅ RESOLVED: ${inc.title || 'Incident'} on ${inc.roadName || 'corridor'} cleared by authorities`);
+      } else {
+        setToastBanner(`⚠️ UPDATED INCIDENT: ${inc?.title || 'Incident update'} on ${inc?.roadName || 'corridor'}`);
+      }
       refreshLiveData();
     });
 
-    socket.on('incident.deleted', () => {
+    socket.on('incident.deleted', (data: any) => {
+      setToastBanner(`ℹ️ REMOVED: Incident record cleared by authority`);
       refreshLiveData();
     });
 
@@ -424,21 +446,97 @@ export const CivilianApp: React.FC<CivilianAppProps> = ({
               )}
             </div>
 
-            {/* Active Notifications Drawer */}
+            {/* Active Notifications & Live Alerts Drawer */}
             <div className="space-y-2">
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center space-x-1">
-                <Bell className="w-3.5 h-3.5 text-amber-400" />
-                <span>Live Route Alerts</span>
-              </h3>
-              {liveNotifications.slice(0, 4).map((n) => (
-                <div key={n.id} className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-xs space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-amber-400">{n.title}</span>
-                    <span className="text-[9px] text-slate-500">Just now</span>
-                  </div>
-                  <p className="text-slate-300 text-[11px]">{n.message}</p>
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center space-x-1">
+                  <Bell className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Live Route Alerts</span>
+                </h3>
+                <span className="text-[9px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">
+                  REAL-TIME SYNC
+                </span>
+              </div>
+
+              {liveNotifications.length === 0 && liveIncidents.length === 0 ? (
+                <div className="bg-slate-950 border border-slate-800 p-3 rounded-xl text-center text-xs text-slate-500">
+                  No active incidents or advisories. Corridors clear.
                 </div>
-              ))}
+              ) : (
+                <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                  {/* Notifications List */}
+                  {liveNotifications.slice(0, 5).map((n) => {
+                    const isResolved = n.title.includes('RESOLVED') || n.title.includes('REOPENED') || n.status === 'RESOLVED';
+                    return (
+                      <div 
+                        key={n.id} 
+                        className={`border p-3 rounded-xl text-xs space-y-1.5 transition-all ${
+                          isResolved 
+                            ? 'bg-emerald-950/20 border-emerald-500/40' 
+                            : n.type === 'CRITICAL' 
+                            ? 'bg-red-950/40 border-red-500/50' 
+                            : 'bg-slate-950 border-slate-800'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className={`font-bold ${isResolved ? 'text-emerald-400' : n.type === 'CRITICAL' ? 'text-red-400' : 'text-amber-400'}`}>
+                            {n.title}
+                          </span>
+                          <span className={`text-[9px] px-1.5 py-0.2 rounded font-bold uppercase border ${
+                            isResolved 
+                              ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' 
+                              : 'bg-amber-500/20 text-amber-400 border-amber-500/40'
+                          }`}>
+                            {isResolved ? 'RESOLVED' : 'ACTIVE'}
+                          </span>
+                        </div>
+                        <p className="text-slate-300 text-[11px] leading-relaxed">{n.message}</p>
+                        <div className="flex items-center justify-between text-[9px] text-slate-500 pt-1 border-t border-slate-800/60">
+                          <span>Corridor: {n.affectedRoadId || 'Citywide'}</span>
+                          <span>{n.timestamp ? n.timestamp.slice(11, 16) : 'Just now'}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {/* Active/Resolved Incidents List */}
+                  {liveIncidents.filter(inc => !liveNotifications.some(n => n.incidentId === inc.id)).slice(0, 3).map((inc) => {
+                    const isResolved = inc.status === 'RESOLVED';
+                    return (
+                      <div 
+                        key={inc.id} 
+                        className={`border p-3 rounded-xl text-xs space-y-1.5 transition-all ${
+                          isResolved 
+                            ? 'bg-emerald-950/20 border-emerald-500/40' 
+                            : inc.severity === 'CRITICAL' 
+                            ? 'bg-red-950/40 border-red-500/50' 
+                            : 'bg-slate-950 border-slate-800'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-white flex items-center gap-1">
+                            <span className="text-amber-400">{inc.type}:</span> {inc.title}
+                          </span>
+                          <span className={`text-[9px] px-1.5 py-0.2 rounded font-bold uppercase border ${
+                            isResolved 
+                              ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' 
+                              : 'bg-amber-500/20 text-amber-400 border-amber-500/40'
+                          }`}>
+                            {inc.status}
+                          </span>
+                        </div>
+                        <p className="text-slate-300 text-[11px]">{inc.description}</p>
+                        <div className="flex items-center justify-between text-[9px] text-slate-400 pt-1 border-t border-slate-800/60">
+                          <span className="font-mono text-blue-400">
+                            {inc.roadName} ({inc.location?.lat?.toFixed(4)}, {inc.location?.lng?.toFixed(4)})
+                          </span>
+                          <span className="font-bold uppercase text-amber-400">{inc.severity}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
 

@@ -179,6 +179,16 @@ export class ApiService {
     return res.json();
   }
 
+  public static async getSpeedHistory(range: string = '24h') {
+    const res = await fetch(`${API_BASE}/traffic/speed-history?range=${encodeURIComponent(range)}`);
+    return res.json();
+  }
+
+  public static async getAccidentHotspots(range: string = 'ALL') {
+    const res = await fetch(`${API_BASE}/traffic/accident-hotspots?range=${encodeURIComponent(range)}`);
+    return res.json();
+  }
+
   public static async updateIncident(id: string, updates: any) {
     const res = await fetch(`${API_BASE}/incidents/${id}`, {
       method: 'PUT',

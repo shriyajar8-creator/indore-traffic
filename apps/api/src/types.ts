@@ -171,9 +171,12 @@ export interface SystemNotification {
   id: string;
   title: string;
   message: string;
-  type: 'CRITICAL' | 'WARNING' | 'CONSTRUCTION' | 'ROAD_CLOSURE' | 'INFO';
+  type: 'CRITICAL' | 'WARNING' | 'CONSTRUCTION' | 'ROAD_CLOSURE' | 'INFO' | 'HIGH';
   timestamp: string;
   affectedRoadId?: string;
+  incidentId?: string;
+  status?: string;
+  location?: GeoPoint;
   reroutePlanId?: string;
   isRead?: boolean;
   audience: 'ALL' | 'CIVILIAN' | 'AUTHORITY';

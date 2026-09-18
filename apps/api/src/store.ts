@@ -246,6 +246,18 @@ export class TrafficStore {
       road.lastUpdated = new Date().toISOString();
     }
 
+    const notif: SystemNotification = {
+      id: `notif-inc-${newInc.id}`,
+      title: `🚨 LIVE INCIDENT: ${newInc.title}`,
+      message: `${newInc.type} reported on ${newInc.roadName}. ${newInc.description || 'Proceed with caution.'}`,
+      type: newInc.severity === 'CRITICAL' ? 'CRITICAL' : newInc.severity === 'HIGH' ? 'HIGH' : 'WARNING',
+      timestamp: newInc.startTime,
+      affectedRoadId: newInc.roadId,
+      incidentId: newInc.id,
+      audience: 'ALL'
+    };
+    this.notifications.unshift(notif);
+
     this.recalculateSignals();
     this.addAuditLog(data.reportedByEmail || 'system', data.reportedByRole, 'CREATE_INCIDENT', data.title, `Severity: ${data.severity} on ${data.roadName}`);
     return newInc;
@@ -255,6 +267,13 @@ export class TrafficStore {
     const inc = this.incidents.find(i => i.id === id);
     if (inc) {
       Object.assign(inc, updates);
+      const notifIdx = this.notifications.findIndex(n => n.incidentId === id);
+      if (notifIdx !== -1) {
+        this.notifications[notifIdx].title = `🚨 LIVE INCIDENT: ${inc.title}`;
+        this.notifications[notifIdx].message = `${inc.type} on ${inc.roadName}. ${inc.description || 'Proceed with caution.'}`;
+        this.notifications[notifIdx].type = inc.severity === 'CRITICAL' ? 'CRITICAL' : inc.severity === 'HIGH' ? 'HIGH' : 'WARNING';
+        this.notifications[notifIdx].timestamp = new Date().toISOString();
+      }
       this.addAuditLog(adminEmail, role, 'UPDATE_INCIDENT', inc.title, `Updated incident details`);
     }
     return inc;
@@ -264,6 +283,10 @@ export class TrafficStore {
     const idx = this.incidents.findIndex(i => i.id === id);
     if (idx !== -1) {
       const deleted = this.incidents.splice(idx, 1)[0];
+      const notifIdx = this.notifications.findIndex(n => n.incidentId === id);
+      if (notifIdx !== -1) {
+        this.notifications.splice(notifIdx, 1);
+      }
       this.addAuditLog(adminEmail, role, 'DELETE_INCIDENT', deleted.title, `Deleted incident ${id}`);
       return true;
     }
@@ -281,6 +304,31 @@ export class TrafficStore {
         road.currentSpeed = Math.min(road.freeFlowSpeed, road.currentSpeed + 10);
         road.status = road.congestionPercentage > 70 ? 'HEAVY' : 'MODERATE';
       }
+
+      const notifIdx = this.notifications.findIndex(n => n.incidentId === id);
+      if (status === 'RESOLVED') {
+        if (notifIdx !== -1) {
+          this.notifications[notifIdx].title = `✅ RESOLVED: ${inc.title}`;
+          this.notifications[notifIdx].message = `Incident on ${inc.roadName} cleared by authorities. Normal flow resuming.`;
+          this.notifications[notifIdx].type = 'INFO';
+          this.notifications[notifIdx].timestamp = new Date().toISOString();
+        } else {
+          this.notifications.unshift({
+            id: `notif-res-${id}-${Date.now()}`,
+            title: `✅ RESOLVED: ${inc.title}`,
+            message: `Incident on ${inc.roadName} cleared by authorities. Normal flow resuming.`,
+            type: 'INFO',
+            timestamp: new Date().toISOString(),
+            affectedRoadId: inc.roadId,
+            incidentId: inc.id,
+            audience: 'ALL'
+          });
+        }
+      } else if (notifIdx !== -1) {
+        this.notifications[notifIdx].title = `🚨 LIVE INCIDENT: ${inc.title}`;
+        this.notifications[notifIdx].message = `${inc.type} on ${inc.roadName}. ${inc.description || 'Proceed with caution.'}`;
+      }
+
       this.addAuditLog(adminEmail, role, 'UPDATE_INCIDENT_STATUS', inc.title, `Status updated to ${status}`);
     }
     return inc;
@@ -412,8 +460,130 @@ export class TrafficStore {
       incidentCategoryData,
       busiestZones,
       totalIncidents: this.incidents.length,
-      activeIncidentsCount: this.incidents.filter(i => i.status === 'ACTIVE').length
+      activeIncidentsCount: this.incidents.filter(i => i.status === 'ACTIVE').length,
+      speedHistory: this.getSpeedHistory('24h'),
+      accidentHotspots: this.getAccidentHotspots('ALL')
     };
+  }
+
+  public getSpeedHistory(range: '24h' | '7d' | '30d' = '24h') {
+    if (range === '7d') {
+      const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      return days.map((day, i) => ({
+        timestamp: day,
+        timeLabel: day,
+        abRoad: Math.round(28 + Math.sin(i) * 8),
+        ringRoad: Math.round(35 + Math.cos(i) * 6),
+        mgRoad: Math.round(24 + Math.sin(i * 1.5) * 5),
+        bhawarkuan: Math.round(26 + Math.cos(i * 2) * 7),
+        bypass: Math.round(44 + Math.sin(i * 0.5) * 4),
+        freeFlowSpeed: 50
+      }));
+    }
+
+    if (range === '30d') {
+      return Array.from({ length: 10 }).map((_, i) => {
+        const dayNum = (i + 1) * 3;
+        return {
+          timestamp: `Day ${dayNum}`,
+          timeLabel: `Day ${dayNum}`,
+          abRoad: Math.round(26 + (i % 4) * 3),
+          ringRoad: Math.round(32 + (i % 3) * 4),
+          mgRoad: Math.round(22 + (i % 5) * 2),
+          bhawarkuan: Math.round(25 + (i % 4) * 3),
+          bypass: Math.round(45 + (i % 2) * 3),
+          freeFlowSpeed: 50
+        };
+      });
+    }
+
+    // Default: 24h (hourly buckets)
+    const hourlyMap: Record<string, any> = {};
+    for (let h = 0; h < 24; h += 2) {
+      const label = `${h.toString().padStart(2, '0')}:00`;
+      let ab = 38, ring = 42, mg = 34, bhaw = 36, byp = 48;
+      if (h >= 8 && h <= 11) {
+        ab = 18; ring = 26; mg = 16; bhaw = 20; byp = 42;
+      } else if (h >= 17 && h <= 20) {
+        ab = 14; ring = 22; mg = 12; bhaw = 16; byp = 38;
+      }
+      hourlyMap[label] = {
+        timestamp: label,
+        timeLabel: label,
+        abRoad: ab,
+        ringRoad: ring,
+        mgRoad: mg,
+        bhawarkuan: bhaw,
+        bypass: byp,
+        freeFlowSpeed: 50
+      };
+    }
+
+    return Object.values(hourlyMap);
+  }
+
+  public getAccidentHotspots(range: '24h' | '7d' | '30d' | 'ALL' = 'ALL') {
+    const defaultJunctions = [
+      { junctionName: 'Vijay Nagar Square', CRITICAL: 4, HIGH: 6, MEDIUM: 5, LOW: 2 },
+      { junctionName: 'Palasia Square', CRITICAL: 3, HIGH: 5, MEDIUM: 4, LOW: 3 },
+      { junctionName: 'Bhawarkuan Square', CRITICAL: 3, HIGH: 4, MEDIUM: 6, LOW: 1 },
+      { junctionName: 'LIG Square', CRITICAL: 2, HIGH: 3, MEDIUM: 4, LOW: 4 },
+      { junctionName: 'Geeta Bhawan Square', CRITICAL: 1, HIGH: 4, MEDIUM: 3, LOW: 2 },
+      { junctionName: 'Rajwada City Center', CRITICAL: 2, HIGH: 2, MEDIUM: 5, LOW: 3 },
+      { junctionName: 'Bengali Square', CRITICAL: 1, HIGH: 3, MEDIUM: 3, LOW: 1 },
+      { junctionName: 'MR-10 Junction', CRITICAL: 2, HIGH: 2, MEDIUM: 2, LOW: 1 },
+      { junctionName: 'Super Corridor Junction', CRITICAL: 1, HIGH: 1, MEDIUM: 2, LOW: 2 },
+      { junctionName: 'Tower Square', CRITICAL: 0, HIGH: 2, MEDIUM: 2, LOW: 1 },
+      { junctionName: 'Navlakha Square', CRITICAL: 1, HIGH: 1, MEDIUM: 1, LOW: 2 },
+      { junctionName: 'Patnipura Square', CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 1 }
+    ];
+
+    let multiplier = 1.0;
+    if (range === '24h') multiplier = 0.25;
+    if (range === '7d') multiplier = 0.6;
+    if (range === '30d') multiplier = 0.85;
+
+    const map: Record<string, { junctionName: string; CRITICAL: number; HIGH: number; MEDIUM: number; LOW: number; total: number }> = {};
+
+    defaultJunctions.forEach(j => {
+      const crit = Math.max(0, Math.round(j.CRITICAL * multiplier));
+      const high = Math.max(0, Math.round(j.HIGH * multiplier));
+      const med = Math.max(0, Math.round(j.MEDIUM * multiplier));
+      const low = Math.max(0, Math.round(j.LOW * multiplier));
+      map[j.junctionName] = {
+        junctionName: j.junctionName,
+        CRITICAL: crit,
+        HIGH: high,
+        MEDIUM: med,
+        LOW: low,
+        total: crit + high + med + low
+      };
+    });
+
+    this.incidents.forEach(inc => {
+      let matchedJunction = 'Vijay Nagar Square';
+      const name = (inc.roadName || inc.title || '').toLowerCase();
+      if (name.includes('palasia')) matchedJunction = 'Palasia Square';
+      else if (name.includes('bhawarkuan')) matchedJunction = 'Bhawarkuan Square';
+      else if (name.includes('lig')) matchedJunction = 'LIG Square';
+      else if (name.includes('geeta bhawan')) matchedJunction = 'Geeta Bhawan Square';
+      else if (name.includes('rajwada')) matchedJunction = 'Rajwada City Center';
+      else if (name.includes('bengali')) matchedJunction = 'Bengali Square';
+      else if (name.includes('mr-10') || name.includes('mr10')) matchedJunction = 'MR-10 Junction';
+      else if (name.includes('super corridor')) matchedJunction = 'Super Corridor Junction';
+
+      if (map[matchedJunction]) {
+        const sev = (inc.severity || 'MEDIUM') as 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+        if (map[matchedJunction][sev] !== undefined) {
+          map[matchedJunction][sev] += 1;
+        } else {
+          map[matchedJunction].MEDIUM += 1;
+        }
+        map[matchedJunction].total += 1;
+      }
+    });
+
+    return Object.values(map).sort((a, b) => b.total - a.total);
   }
 
 
@@ -426,10 +596,36 @@ export class TrafficStore {
         road.status = 'CRITICAL';
         road.currentSpeed = 0;
         road.congestionPercentage = 100;
+        this.notifications.unshift({
+          id: `notif-closure-${roadId}-${Date.now()}`,
+          title: `🛑 ROAD CLOSED: ${road.name}`,
+          message: `Corridor blocked by authorities. ${reason || 'Exercise caution.'}`,
+          type: 'CRITICAL',
+          timestamp: new Date().toISOString(),
+          affectedRoadId: roadId,
+          audience: 'ALL'
+        });
       } else {
         road.status = 'MODERATE';
         road.currentSpeed = Math.round(road.freeFlowSpeed * 0.7);
         road.congestionPercentage = 45;
+        const existingIdx = this.notifications.findIndex(n => n.affectedRoadId === roadId && n.title.includes('ROAD CLOSED'));
+        if (existingIdx !== -1) {
+          this.notifications[existingIdx].title = `✅ ROAD REOPENED: ${road.name}`;
+          this.notifications[existingIdx].message = `Corridor re-opened by authorities. Traffic clear.`;
+          this.notifications[existingIdx].type = 'INFO';
+          this.notifications[existingIdx].timestamp = new Date().toISOString();
+        } else {
+          this.notifications.unshift({
+            id: `notif-open-${roadId}-${Date.now()}`,
+            title: `✅ ROAD REOPENED: ${road.name}`,
+            message: `Corridor re-opened by authorities. Traffic clear.`,
+            type: 'INFO',
+            timestamp: new Date().toISOString(),
+            affectedRoadId: roadId,
+            audience: 'ALL'
+          });
+        }
       }
       road.lastUpdated = new Date().toISOString();
       this.addAuditLog(adminEmail, role, isClosed ? 'BLOCK_ROAD' : 'OPEN_ROAD', road.name, reason || 'Administrative action');

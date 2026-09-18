@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { JunctionTrafficData } from '../types';
 import { 
   BarChart, 
@@ -12,18 +12,63 @@ import {
   Cell, 
   Legend,
   LineChart,
-  Line
+  Line,
+  ReferenceLine
 } from 'recharts';
-import { Car, Bike, Truck, ShieldAlert, BarChart3, Filter, CheckCircle2, TrendingUp, AlertTriangle } from 'lucide-react';
-
+import { Car, Bike, Truck, ShieldAlert, BarChart3, Filter, CheckCircle2, TrendingUp, AlertTriangle, Clock, Layers } from 'lucide-react';
+import { ApiService } from '../services/api';
 
 interface ReportProps {
   junctions: JunctionTrafficData[];
   analyticsData?: any;
+  onNavigateToTab?: (tab: string, filter?: any) => void;
 }
 
-export const JunctionTrafficReport: React.FC<ReportProps> = ({ junctions, analyticsData }) => {
+export const JunctionTrafficReport: React.FC<ReportProps> = ({ junctions, analyticsData, onNavigateToTab }) => {
   const [filterLevel, setFilterLevel] = useState<string>('ALL');
+
+  // Speed History Chart State
+  const [speedRange, setSpeedRange] = useState<'24h' | '7d' | '30d'>('24h');
+  const [speedData, setSpeedData] = useState<any[]>(analyticsData?.speedHistory || []);
+  const [loadingSpeed, setLoadingSpeed] = useState<boolean>(false);
+
+  // Accident Hotspots Chart State
+  const [hotspotRange, setHotspotRange] = useState<'24h' | '7d' | '30d' | 'ALL'>('ALL');
+  const [hotspotsData, setHotspotsData] = useState<any[]>(analyticsData?.accidentHotspots || []);
+  const [loadingHotspots, setLoadingHotspots] = useState<boolean>(false);
+  const [showAllHotspots, setShowAllHotspots] = useState<boolean>(false);
+
+  // Fetch Speed History on Range Change
+  useEffect(() => {
+    let isMounted = true;
+    setLoadingSpeed(true);
+    ApiService.getSpeedHistory(speedRange)
+      .then(res => {
+        if (isMounted && res.speedHistory) {
+          setSpeedData(res.speedHistory);
+        }
+      })
+      .catch(err => console.error('Speed history fetch error:', err))
+      .finally(() => { if (isMounted) setLoadingSpeed(false); });
+
+    return () => { isMounted = false; };
+  }, [speedRange]);
+
+  // Fetch Accident Hotspots on Range Change
+  useEffect(() => {
+    let isMounted = true;
+    setLoadingHotspots(true);
+    ApiService.getAccidentHotspots(hotspotRange)
+      .then(res => {
+        if (isMounted && res.accidentHotspots) {
+          setHotspotsData(res.accidentHotspots);
+        }
+      })
+      .catch(err => console.error('Accident hotspots fetch error:', err))
+      .finally(() => { if (isMounted) setLoadingHotspots(false); });
+
+    return () => { isMounted = false; };
+  }, [hotspotRange]);
 
   const filteredJunctions = junctions.filter(j => 
     filterLevel === 'ALL' ? true : j.congestionLevel === filterLevel
@@ -47,13 +92,6 @@ export const JunctionTrafficReport: React.FC<ReportProps> = ({ junctions, analyt
     { name: 'WATERLOGGING', count: 1 },
     { name: 'ROADBLOCK', count: 2 },
     { name: 'OTHER', count: 1 }
-  ];
-  const busiestZones = analyticsData?.busiestZones || [
-    { name: 'AB Road Corridor (Vijay Nagar -> Palasia)', congestion: 88, status: 'CRITICAL', avgDelayMin: 14 },
-    { name: 'Bhawarkuan Square & University Link', congestion: 76, status: 'SEVERE', avgDelayMin: 9 },
-    { name: 'Rajwada City Center & MG Road', congestion: 68, status: 'HEAVY', avgDelayMin: 7 },
-    { name: 'Ring Road East (Bengali Sq -> MR-10)', congestion: 54, status: 'MODERATE', avgDelayMin: 4 },
-    { name: 'Eastern Bypass Highway Link', congestion: 22, status: 'FREE_FLOW', avgDelayMin: 1 }
   ];
 
   const [comparativeTimeframe, setComparativeTimeframe] = useState<'THIS_WEEK' | 'LAST_WEEK' | 'LAST_MONTH'>('THIS_WEEK');
@@ -149,6 +187,194 @@ export const JunctionTrafficReport: React.FC<ReportProps> = ({ junctions, analyt
             <span className="text-[10px] text-amber-300 block">Typical Expected Norm: 50%</span>
           </div>
         </div>
+      </div>
+
+      {/* FEATURE 1 CHART: Average Vehicle Speed Over Time */}
+      <div className="bg-slate-900/80 border border-slate-800 p-5 rounded-xl space-y-4 shadow-xl">
+        <div className="flex flex-wrap items-center justify-between border-b border-slate-800 pb-3 gap-2">
+          <div className="flex items-center space-x-2">
+            <div className="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 font-bold">
+              <TrendingUp className="w-4 h-4 text-emerald-400" />
+            </div>
+            <div>
+              <h3 className="font-extrabold text-sm text-white uppercase tracking-wider font-sans">
+                Average Corridor Vehicle Speed Over Time
+              </h3>
+              <p className="text-[11px] text-slate-400">Multi-Corridor Speed Trends & Speed Limit Deviation Benchmarks</p>
+            </div>
+          </div>
+
+          {/* Time Range Toggle Controls */}
+          <div className="flex items-center space-x-1.5 bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs">
+            <span className="text-[10px] text-slate-400 px-2 font-bold uppercase">Timeframe:</span>
+            {(['24h', '7d', '30d'] as const).map(range => (
+              <button
+                key={range}
+                onClick={() => setSpeedRange(range)}
+                className={`px-2.5 py-1 rounded font-bold text-[11px] transition ${
+                  speedRange === range 
+                    ? 'bg-emerald-600 text-white shadow' 
+                    : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                }`}
+              >
+                {range === '24h' ? 'Last 24 Hours' : range === '7d' ? 'Last 7 Days' : 'Last 30 Days'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Loading / Empty / Chart Render */}
+        {loadingSpeed ? (
+          <div className="h-64 flex items-center justify-center bg-slate-950/50 rounded-xl border border-slate-800/50 animate-pulse">
+            <span className="text-xs text-slate-400 font-mono">Loading corridor speed data...</span>
+          </div>
+        ) : speedData.length === 0 ? (
+          <div className="h-64 flex items-center justify-center bg-slate-950/50 rounded-xl border border-slate-800 text-xs text-slate-500">
+            No speed history data recorded for selected time range ({speedRange}).
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={speedData} margin={{ top: 10, right: 20, left: 0, bottom: 20 }}>
+                  <XAxis dataKey="timeLabel" stroke="#64748B" fontSize={10} />
+                  <YAxis stroke="#64748B" fontSize={10} unit=" km/h" domain={[0, 65]} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#0F172A', borderColor: '#334155', borderRadius: '10px', fontSize: '11px', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)' }}
+                    formatter={(val: any, name: any) => [`${val} km/h`, name]}
+                  />
+                  <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
+                  <ReferenceLine 
+                    y={50} 
+                    stroke="#EF4444" 
+                    strokeDasharray="4 4" 
+                    label={{ value: 'Free-Flow Limit (50 km/h)', fill: '#EF4444', fontSize: 10, position: 'insideTopRight' }} 
+                  />
+                  <Line type="monotone" dataKey="abRoad" stroke="#EF4444" strokeWidth={2.5} dot={{ r: 3 }} name="AB Road Corridor" />
+                  <Line type="monotone" dataKey="ringRoad" stroke="#F59E0B" strokeWidth={2} dot={{ r: 3 }} name="Ring Road East" />
+                  <Line type="monotone" dataKey="mgRoad" stroke="#3B82F6" strokeWidth={2} dot={{ r: 3 }} name="MG Road Center" />
+                  <Line type="monotone" dataKey="bhawarkuan" stroke="#8B5CF6" strokeWidth={2} dot={{ r: 3 }} name="Bhawarkuan Corridor" />
+                  <Line type="monotone" dataKey="bypass" stroke="#10B981" strokeWidth={2} dot={{ r: 3 }} name="Eastern Bypass Highway" />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="flex items-center justify-between text-[10px] text-slate-400 pt-2 border-t border-slate-800">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                <span>Dips below 20 km/h indicate severe congestion bottleneck</span>
+              </span>
+              <span className="text-emerald-400 font-mono">Updated Real-Time via GIS Sensors</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* FEATURE 2 CHART: Accident Hotspots by Junction */}
+      <div className="bg-slate-900/80 border border-slate-800 p-5 rounded-xl space-y-4 shadow-xl">
+        <div className="flex flex-wrap items-center justify-between border-b border-slate-800 pb-3 gap-2">
+          <div className="flex items-center space-x-2">
+            <div className="w-8 h-8 rounded-lg bg-red-600/20 border border-red-500/40 flex items-center justify-center text-red-400 font-bold">
+              <AlertTriangle className="w-4 h-4 text-red-400" />
+            </div>
+            <div>
+              <h3 className="font-extrabold text-sm text-white uppercase tracking-wider font-sans flex items-center gap-2">
+                <span>Accident Hotspots by Junction & Intersection</span>
+                <span className="text-[9px] bg-red-500/20 text-red-400 px-2 py-0.5 rounded border border-red-500/30">
+                  RANKED RISK INDEX
+                </span>
+              </h3>
+              <p className="text-[11px] text-slate-400">Stacked Incident Severity Distribution & Click-Through Investigation</p>
+            </div>
+          </div>
+
+          {/* Controls: Time Range & Top 10 Toggle */}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center space-x-1.5 bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs">
+              <span className="text-[10px] text-slate-400 px-2 font-bold uppercase">Period:</span>
+              {(['24h', '7d', '30d', 'ALL'] as const).map(range => (
+                <button
+                  key={range}
+                  onClick={() => setHotspotRange(range)}
+                  className={`px-2.5 py-1 rounded font-bold text-[11px] transition ${
+                    hotspotRange === range 
+                      ? 'bg-red-600 text-white shadow' 
+                      : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                  }`}
+                >
+                  {range === '24h' ? '24 Hours' : range === '7d' ? '7 Days' : range === '30d' ? '30 Days' : 'All Time'}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => setShowAllHotspots(prev => !prev)}
+              className="bg-slate-950 hover:bg-slate-800 border border-slate-700 text-slate-300 font-bold text-xs px-3 py-1.5 rounded-lg transition"
+            >
+              {showAllHotspots ? 'Show Top 10' : `Show All (${hotspotsData.length})`}
+            </button>
+          </div>
+        </div>
+
+        {/* Loading / Empty / Chart Render */}
+        {loadingHotspots ? (
+          <div className="h-72 flex items-center justify-center bg-slate-950/50 rounded-xl border border-slate-800/50 animate-pulse">
+            <span className="text-xs text-slate-400 font-mono">Aggregating incident hotspots by junction...</span>
+          </div>
+        ) : hotspotsData.length === 0 ? (
+          <div className="h-72 flex items-center justify-center bg-slate-950/50 rounded-xl border border-slate-800 text-xs text-slate-500">
+            No accident data recorded for selected period ({hotspotRange}).
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={showAllHotspots ? hotspotsData : hotspotsData.slice(0, 10)}
+                  layout="vertical"
+                  margin={{ top: 10, right: 30, left: 40, bottom: 10 }}
+                  onClick={(entry: any) => {
+                    if (onNavigateToTab) {
+                      onNavigateToTab('incidents');
+                    }
+                  }}
+                >
+                  <XAxis type="number" stroke="#64748B" fontSize={10} />
+                  <YAxis 
+                    dataKey="junctionName" 
+                    type="category" 
+                    stroke="#CBD5E1" 
+                    fontSize={11} 
+                    fontWeight={600} 
+                    width={140} 
+                    tickFormatter={(val) => val.length > 20 ? `${val.slice(0, 18)}...` : val}
+                  />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#0F172A', borderColor: '#334155', borderRadius: '10px', fontSize: '11px', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.5)' }}
+                    formatter={(val: any, name: any) => [`${val} incidents`, `Severity: ${name}`]}
+                  />
+                  <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
+                  <Bar dataKey="CRITICAL" stackId="a" fill="#EF4444" name="Critical / Major Collision" radius={[0, 0, 0, 0]} cursor="pointer" />
+                  <Bar dataKey="HIGH" stackId="a" fill="#F59E0B" name="High Severity Incident" cursor="pointer" />
+                  <Bar dataKey="MEDIUM" stackId="a" fill="#3B82F6" name="Medium Jam / Breakdown" cursor="pointer" />
+                  <Bar dataKey="LOW" stackId="a" fill="#64748B" name="Low Hazard / Obstacle" radius={[0, 4, 4, 0]} cursor="pointer" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="flex items-center justify-between text-xs bg-slate-950 p-3 rounded-lg border border-slate-800">
+              <span className="text-slate-400 text-[11px] flex items-center gap-1.5">
+                <ShieldAlert className="w-4 h-4 text-amber-400" />
+                <span>Click any bar to switch to <strong>Incidents & Accidents</strong> tab for active response log.</span>
+              </span>
+              <button
+                onClick={() => onNavigateToTab && onNavigateToTab('incidents')}
+                className="bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-[11px] py-1.5 px-3 rounded-lg shadow flex items-center gap-1 uppercase"
+              >
+                <span>Investigate Incidents</span>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Charts Section 1: Junction Volume & Vehicle Modal Split */}

@@ -373,7 +373,11 @@ export const AdminDashboard: React.FC = () => {
 
           {/* TAB: ANALYTICS */}
           {activeTab === 'analytics' && (
-            <JunctionTrafficReport junctions={junctions} />
+            <JunctionTrafficReport 
+              junctions={junctions} 
+              analyticsData={analyticsData}
+              onNavigateToTab={(tab) => setActiveTab(tab)}
+            />
           )}
 
           {/* TAB: SYSTEM SETTINGS */}
