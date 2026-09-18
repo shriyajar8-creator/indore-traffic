@@ -1,18 +1,22 @@
 import { io, Socket } from 'socket.io-client';
 
-const API_BASE = '/api';
+const API_ORIGIN =
+  import.meta.env.VITE_API_ORIGIN || window.location.origin;
+
+export const API_BASE = `${API_ORIGIN}/api`;
 
 export class ApiService {
   private static socket: Socket | null = null;
 
   public static getSocket(): Socket {
     if (!ApiService.socket) {
-      ApiService.socket = io(window.location.origin, {
+      ApiService.socket = io(API_ORIGIN, {
         reconnection: true,
         reconnectionAttempts: 10,
         reconnectionDelay: 1000
       });
     }
+
     return ApiService.socket;
   }
 
