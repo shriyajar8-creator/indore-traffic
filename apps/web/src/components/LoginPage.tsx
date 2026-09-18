@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { UserRole } from '../types';
-import { Activity, ShieldCheck, Lock, Mail, Sparkles, ArrowRight, ShieldAlert } from 'lucide-react';
+import { Lock, Mail, ArrowRight, ShieldAlert } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
-  const { login, signup, quickLogin } = useAuth();
+  const { login, signup } = useAuth();
+
   const [authMode, setAuthMode] = useState<'LOGIN' | 'SIGNUP'>('LOGIN');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -18,26 +19,24 @@ export const LoginPage: React.FC = () => {
     e.preventDefault();
     setError(null);
     setLoading(true);
+
     try {
       if (authMode === 'LOGIN') {
         await login(email, password);
       } else {
-        await signup({ name, email, pass: password, role, department });
+        await signup({
+          name,
+          email,
+          pass: password,
+          role,
+          department
+        });
       }
     } catch (err: any) {
-      setError(err.message || `${authMode === 'LOGIN' ? 'Login' : 'Registration'} failed.`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleQuickSelect = async (selectedRole: UserRole) => {
-    setError(null);
-    setLoading(true);
-    try {
-      await quickLogin(selectedRole);
-    } catch (err: any) {
-      setError(err.message || 'Quick login failed.');
+      setError(
+        err.message ||
+          `${authMode === 'LOGIN' ? 'Login' : 'Registration'} failed.`
+      );
     } finally {
       setLoading(false);
     }
@@ -45,18 +44,27 @@ export const LoginPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#0B0F19] text-slate-100 flex flex-col justify-between font-sans select-none relative overflow-hidden">
-      {/* Dynamic Background Glow Effect */}
+
+      {/* Background Glow */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[140px] pointer-events-none"></div>
 
       {/* Header */}
       <header className="px-8 py-6 flex items-center justify-between border-b border-slate-800/80 bg-slate-900/40 backdrop-blur-md z-10">
         <div className="flex items-center space-x-3">
-          <img src="/gatiraksha-logo.png" alt="GatiRaksha Logo" className="w-10 h-10 rounded-xl border border-blue-500/40 object-cover shadow-md" />
+          <img
+            src="/gatiraksha-logo.png"
+            alt="GatiRaksha Logo"
+            className="w-10 h-10 rounded-xl border border-blue-500/40 object-cover shadow-md"
+          />
+
           <div>
             <h1 className="font-extrabold text-base text-white tracking-wider font-sans uppercase flex items-center gap-1.5">
-              <span className="text-blue-400">GatiRaksha</span> Intelligence
+              <span className="text-blue-400">GatiRaksha</span>
             </h1>
-            <p className="text-[10px] text-slate-400">Urban Decision Support & Incident Response Platform</p>
+
+            <p className="text-[10px] text-slate-400">
+              Urban Decision Support & Incident Response Platform
+            </p>
           </div>
         </div>
 
@@ -66,37 +74,61 @@ export const LoginPage: React.FC = () => {
         </span>
       </header>
 
-      {/* Main Login Card Container */}
-      <div className="flex-1 flex items-center justify-center p-6 z-10">
+      {/* Main Login Area */}
+      <main className="flex-1 flex items-center justify-center p-6 z-10">
         <div className="bg-[#0F172A]/90 border border-slate-800 p-8 rounded-2xl max-w-md w-full shadow-2xl space-y-5 backdrop-blur-xl">
+
+          {/* Logo & Title */}
           <div className="text-center space-y-2">
-            <img src="/gatiraksha-logo.png" alt="GatiRaksha Logo" className="w-14 h-14 rounded-2xl border border-blue-500/40 mx-auto object-cover shadow-xl" />
+            <img
+              src="/gatiraksha-logo.png"
+              alt="GatiRaksha Logo"
+              className="w-14 h-14 rounded-2xl border border-blue-500/40 mx-auto object-cover shadow-xl"
+            />
+
             <h2 className="text-xl font-extrabold text-white tracking-tight font-sans">
-              GATIRAKSHA COMMAND
+              GatiRaksha
             </h2>
+
             <p className="text-xs text-slate-400">
               Smart Traffic Command & Incident Response Platform
             </p>
           </div>
 
-          {/* Mode Switcher Tabs */}
+          {/* Sign In / Create Account */}
           <div className="bg-slate-950 p-1 rounded-xl border border-slate-800 flex items-center text-xs font-bold">
             <button
               type="button"
-              onClick={() => { setAuthMode('LOGIN'); setError(null); }}
-              className={`flex-1 py-2 rounded-lg transition ${authMode === 'LOGIN' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
+              onClick={() => {
+                setAuthMode('LOGIN');
+                setError(null);
+              }}
+              className={`flex-1 py-2 rounded-lg transition ${
+                authMode === 'LOGIN'
+                  ? 'bg-blue-600 text-white shadow-md'
+                  : 'text-slate-400 hover:text-white'
+              }`}
             >
               SIGN IN
             </button>
+
             <button
               type="button"
-              onClick={() => { setAuthMode('SIGNUP'); setError(null); }}
-              className={`flex-1 py-2 rounded-lg transition ${authMode === 'SIGNUP' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-400 hover:text-white'}`}
+              onClick={() => {
+                setAuthMode('SIGNUP');
+                setError(null);
+              }}
+              className={`flex-1 py-2 rounded-lg transition ${
+                authMode === 'SIGNUP'
+                  ? 'bg-blue-600 text-white shadow-md'
+                  : 'text-slate-400 hover:text-white'
+              }`}
             >
               CREATE ACCOUNT
             </button>
           </div>
 
+          {/* Error Message */}
           {error && (
             <div className="bg-red-500/10 border border-red-500/30 p-3 rounded-xl text-xs text-red-400 flex items-center space-x-2">
               <ShieldAlert className="w-4 h-4 flex-shrink-0" />
@@ -104,144 +136,148 @@ export const LoginPage: React.FC = () => {
             </div>
           )}
 
+          {/* Authentication Form */}
           <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
+
+            {/* Full Name - Signup Only */}
             {authMode === 'SIGNUP' && (
               <div>
-                <label className="block text-slate-300 font-semibold mb-1">Full Name</label>
+                <label className="block text-slate-300 font-semibold mb-1">
+                  Full Name
+                </label>
+
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Inspector Ramesh Sharma"
+                  placeholder="Enter your full name"
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-blue-500"
                   required
                 />
               </div>
             )}
 
+            {/* Email */}
             <div>
-              <label className="block text-slate-300 font-semibold mb-1">Email Address</label>
+              <label className="block text-slate-300 font-semibold mb-1">
+                Email Address
+              </label>
+
               <div className="relative">
                 <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder={authMode === 'LOGIN' ? "admin@indoretraffic.demo" : "officer@gatiraksha.gov.in"}
+                  placeholder="Enter your email"
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-white focus:outline-none focus:border-blue-500"
                   required
                 />
               </div>
             </div>
 
+            {/* Password */}
             <div>
-              <label className="block text-slate-300 font-semibold mb-1">Password</label>
+              <label className="block text-slate-300 font-semibold mb-1">
+                Password
+              </label>
+
               <div className="relative">
                 <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
+                  placeholder="Enter your password"
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-white focus:outline-none focus:border-blue-500"
                   required
                 />
               </div>
             </div>
 
+            {/* Signup Role & Department */}
             {authMode === 'SIGNUP' && (
               <div className="grid grid-cols-2 gap-2">
+
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1">Account Role</label>
+                  <label className="block text-slate-300 font-semibold mb-1">
+                    Account Role
+                  </label>
+
                   <select
                     value={role}
-                    onChange={(e) => setRole(e.target.value as UserRole)}
+                    onChange={(e) =>
+                      setRole(e.target.value as UserRole)
+                    }
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2 text-white focus:outline-none"
                   >
-                    <option value="CIVILIAN">Civilian / Commuter</option>
-                    <option value="TRAFFIC_POLICE">Traffic Police</option>
-                    <option value="ROAD_DEPARTMENT">Road Dept (PWD)</option>
-                    <option value="EMERGENCY_RESPONSE">Emergency 108</option>
-                    <option value="ADMIN">Command Admin</option>
+                    <option value="CIVILIAN">
+                      Civilian / Commuter
+                    </option>
+
+                    <option value="TRAFFIC_POLICE">
+                      Traffic Police
+                    </option>
+
+                    <option value="ROAD_DEPARTMENT">
+                      Road Dept (PWD)
+                    </option>
+
+                    <option value="EMERGENCY_RESPONSE">
+                      Emergency 108
+                    </option>
+
+                    <option value="ADMIN">
+                      Command Admin
+                    </option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1">Department</label>
+                  <label className="block text-slate-300 font-semibold mb-1">
+                    Department
+                  </label>
+
                   <input
                     type="text"
                     value={department}
                     onChange={(e) => setDepartment(e.target.value)}
-                    placeholder="e.g. Zone 1 Police"
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none"
+                    placeholder="Enter department"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-blue-500"
                   />
                 </div>
+
               </div>
             )}
 
+            {/* Submit Button */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold py-3 rounded-xl shadow-xl flex items-center justify-center space-x-2 uppercase tracking-wider text-xs transition"
+              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-extrabold py-3 rounded-xl shadow-xl flex items-center justify-center space-x-2 uppercase tracking-wider text-xs transition"
             >
-              <span>{loading ? 'AUTHENTICATING...' : authMode === 'LOGIN' ? 'LOGIN TO PLATFORM' : 'REGISTER & START'}</span>
+              <span>
+                {loading
+                  ? 'AUTHENTICATING...'
+                  : authMode === 'LOGIN'
+                  ? 'LOGIN TO PLATFORM'
+                  : 'REGISTER & START'}
+              </span>
+
               <ArrowRight className="w-4 h-4" />
             </button>
+
           </form>
-
-          {/* Quick Role Selectors for SIH Judges */}
-          <div className="pt-4 border-t border-slate-800/80 space-y-2">
-            <div className="flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-              <span>Demo Role Quick Switch</span>
-              <Sparkles className="w-3 h-3 text-amber-400" />
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <button
-                type="button"
-                onClick={() => handleQuickSelect('ADMIN')}
-                className="p-2 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-left text-blue-400 font-semibold transition"
-              >
-                1. Admin Command
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickSelect('TRAFFIC_POLICE')}
-                className="p-2 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-left text-emerald-400 font-semibold transition"
-              >
-                2. Traffic Police
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickSelect('ROAD_DEPARTMENT')}
-                className="p-2 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-left text-orange-400 font-semibold transition"
-              >
-                3. Road Dept (PWD)
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickSelect('EMERGENCY_RESPONSE')}
-                className="p-2 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-left text-red-400 font-semibold transition"
-              >
-                4. Emergency 108
-              </button>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => handleQuickSelect('CIVILIAN')}
-              className="w-full p-2.5 rounded-lg bg-emerald-950/30 hover:bg-emerald-900/40 border border-emerald-500/30 text-emerald-400 font-bold text-center text-xs transition mt-1"
-            >
-              5. Civilian Application (Public Navigation)
-            </button>
-          </div>
         </div>
-      </div>
+      </main>
 
       {/* Footer */}
       <footer className="py-4 border-t border-slate-800/80 text-center text-[11px] text-slate-500 bg-slate-950/60 z-10">
-        Indore Municipal Traffic Intelligence & Response Platform • Smart India Hackathon Core
+        GatiRaksha • Urban Traffic Intelligence & Incident Response Platform
       </footer>
+
     </div>
   );
 };
