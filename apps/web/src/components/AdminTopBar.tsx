@@ -247,12 +247,14 @@ export const AdminTopBar: React.FC<AdminTopBarProps> = ({
             <p className="text-[11px] font-semibold text-slate-100 leading-tight">{user?.name || 'Administrator'}</p>
             <p className="text-[9px] text-slate-400 leading-tight">{activeRole}</p>
           </div>
-          <button 
-            onClick={logout} 
-            className="text-slate-400 hover:text-red-400 ml-1 p-1 rounded hover:bg-slate-800 transition"
+          <button
+            type="button"
+            onClick={logout}
+            className="text-xs text-slate-300 hover:text-white bg-slate-800 hover:bg-red-600 border border-slate-700 hover:border-red-500 px-2.5 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition"
             title="Logout of Command Center"
           >
             <LogOut className="w-4 h-4" />
+            <span>Logout</span>
           </button>
         </div>
       </div>

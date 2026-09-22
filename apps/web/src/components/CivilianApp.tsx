@@ -21,6 +21,7 @@ import {
   ShieldAlert,
   Camera,
   Send,
+  LogOut,
   Moon,
   Sun
 } from 'lucide-react';
@@ -52,7 +53,7 @@ export const CivilianApp: React.FC<CivilianAppProps> = ({
   junctions = [],
   constructions = []
 }) => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
 
   const [origin, setOrigin] = useState('Vijay Nagar Square');
   const [destination, setDestination] = useState(
@@ -898,6 +899,21 @@ export const CivilianApp: React.FC<CivilianAppProps> = ({
 
             <span>
               Report Incident
+            </span>
+
+          </button>
+
+          <button
+            type="button"
+            onClick={logout}
+            className="text-xs bg-slate-800 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg font-bold flex items-center space-x-1.5 shadow border border-slate-700 hover:border-red-500 transition"
+            title="Logout"
+          >
+
+            <LogOut className="w-3.5 h-3.5" />
+
+            <span>
+              Logout
             </span>
 
           </button>
