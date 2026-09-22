@@ -47,7 +47,7 @@ export const CivilianApp: React.FC<CivilianAppProps> = ({
   junctions = [],
   constructions = []
 }) => {
-  const { user, quickLogin } = useAuth();
+  const { user } = useAuth();
 
   const [origin, setOrigin] = useState('Vijay Nagar Square');
   const [destination, setDestination] = useState('Rajwada City Center');
@@ -657,17 +657,6 @@ export const CivilianApp: React.FC<CivilianAppProps> = ({
         </div>
 
         <div className="flex items-center space-x-3">
-
-          {/* Existing Admin Switch */}
-          <button
-            onClick={async () => {
-              window.location.hash = '';
-              await quickLogin('ADMIN');
-            }}
-            className="text-xs bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg font-bold shadow"
-          >
-            Switch to Admin Command Center
-          </button>
 
           <button
             onClick={() => setShowReportModal(true)}
