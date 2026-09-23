@@ -924,7 +924,7 @@ export const CivilianApp: React.FC<CivilianAppProps> = ({
 
       {/* Main Civilian Navigation Grid */}
 
-      <div className="flex-1 grid grid-cols-1 md:grid-cols-12 relative">
+      <div className="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-12 relative">
 
         {/* Floating Route & Navigation Drawer */}
 
@@ -1497,7 +1497,7 @@ export const CivilianApp: React.FC<CivilianAppProps> = ({
 
         {/* Map */}
 
-        <div className="md:col-span-8 lg:col-span-9 h-[calc(100vh-61px)]">
+        <div className="md:col-span-8 lg:col-span-9 h-full min-h-0">
 
           <IndoreMap
             provider="GoogleMaps"

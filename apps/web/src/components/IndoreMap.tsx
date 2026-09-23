@@ -234,7 +234,7 @@ export const IndoreMap: React.FC<IndoreMapProps> = ({
   ];
 
   return (
-    <div className="relative w-full h-full min-h-[520px] rounded-xl overflow-hidden border border-slate-800 shadow-2xl">
+    <div className="relative isolate w-full h-full min-h-[520px] rounded-xl overflow-hidden border border-slate-800 shadow-2xl">
 
       {/* ========================================================
           LEAFLET MAP
@@ -650,7 +650,7 @@ export const IndoreMap: React.FC<IndoreMapProps> = ({
             absolute
             top-3
             right-3
-            z-[400]
+            z-[30]
             flex
             items-center
             gap-2
@@ -685,7 +685,7 @@ export const IndoreMap: React.FC<IndoreMapProps> = ({
             absolute
             top-3
             right-3
-            z-[400]
+            z-[30]
             w-[220px]
             rounded-xl
             bg-slate-950/95
