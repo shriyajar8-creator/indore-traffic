@@ -12,7 +12,7 @@ export class ApiService {
     if (!ApiService.socket) {
       ApiService.socket = io(API_ORIGIN, {
         reconnection: true,
-        reconnectionAttempts: 10,
+        reconnectionAttempts: Infinity,
         reconnectionDelay: 1000
       });
     }

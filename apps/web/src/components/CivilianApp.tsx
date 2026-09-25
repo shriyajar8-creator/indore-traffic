@@ -117,6 +117,14 @@ export const CivilianApp: React.FC<CivilianAppProps> = ({
 
   const [liveNotifications, setLiveNotifications] =
     useState<SystemNotification[]>(notifications);
+      /*
+   * Socket.IO connection status.
+   * Uses the existing shared Socket.IO connection.
+   */
+  const [socketStatus, setSocketStatus] =
+    useState<'connected' | 'reconnecting' | 'disconnected'>(
+      'disconnected'
+    );
 
   /*
    * Keep latest Auto Reroute setting available to
@@ -138,6 +146,84 @@ export const CivilianApp: React.FC<CivilianAppProps> = ({
     autoRerouteRef.current =
       autoRerouteEnabled;
   }, [autoRerouteEnabled]);
+    /*
+   * ============================================================
+   * SOCKET.IO CONNECTION STATUS
+   * ============================================================
+   *
+   * Uses the same shared Socket.IO connection as the
+   * existing real-time Admin -> Civilian system.
+   */
+  useEffect(() => {
+    const socket = ApiService.getSocket();
+
+    const handleConnect = () => {
+      setSocketStatus('connected');
+    };
+
+    const handleDisconnect = () => {
+      setSocketStatus(
+        socket.active
+          ? 'reconnecting'
+          : 'disconnected'
+      );
+    };
+
+    const handleConnectError = () => {
+      setSocketStatus('reconnecting');
+    };
+
+    const handleReconnectAttempt = () => {
+      setSocketStatus('reconnecting');
+    };
+
+    const handleReconnectFailed = () => {
+      setSocketStatus('disconnected');
+    };
+
+    /*
+     * Set the initial state immediately.
+     */
+    setSocketStatus(
+      socket.connected
+        ? 'connected'
+        : 'reconnecting'
+    );
+
+    socket.on('connect', handleConnect);
+    socket.on('disconnect', handleDisconnect);
+    socket.on('connect_error', handleConnectError);
+
+    socket.io.on(
+      'reconnect_attempt',
+      handleReconnectAttempt
+    );
+
+    socket.io.on(
+      'reconnect_failed',
+      handleReconnectFailed
+    );
+
+    return () => {
+      socket.off('connect', handleConnect);
+      socket.off('disconnect', handleDisconnect);
+      socket.off(
+        'connect_error',
+        handleConnectError
+      );
+
+      socket.io.off(
+        'reconnect_attempt',
+        handleReconnectAttempt
+      );
+
+      socket.io.off(
+        'reconnect_failed',
+        handleReconnectFailed
+      );
+    };
+  }, []);
+
 
   useEffect(() => {
     setLiveRoads(roads);
@@ -887,6 +973,44 @@ export const CivilianApp: React.FC<CivilianAppProps> = ({
         </div>
 
         <div className="flex items-center space-x-3">
+
+          {/* Socket.IO Connection Status */}
+          <div
+            className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800 border border-slate-700"
+            title={
+              socketStatus === 'connected'
+                ? 'Real-time connection active'
+                : socketStatus === 'reconnecting'
+                ? 'Trying to reconnect to real-time server'
+                : 'Real-time connection unavailable'
+            }
+          >
+            <span
+              className={`w-2 h-2 rounded-full ${
+                socketStatus === 'connected'
+                  ? 'bg-emerald-400'
+                  : socketStatus === 'reconnecting'
+                  ? 'bg-amber-400 animate-pulse'
+                  : 'bg-red-400'
+              }`}
+            />
+
+            <span
+              className={`text-[10px] font-bold ${
+                socketStatus === 'connected'
+                  ? 'text-emerald-400'
+                  : socketStatus === 'reconnecting'
+                  ? 'text-amber-400'
+                  : 'text-red-400'
+              }`}
+            >
+              {socketStatus === 'connected'
+                ? 'LIVE'
+                : socketStatus === 'reconnecting'
+                ? 'RECONNECTING'
+                : 'OFFLINE'}
+            </span>
+          </div>
 
           <button
             onClick={() =>
