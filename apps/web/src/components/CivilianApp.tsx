@@ -117,7 +117,8 @@ export const CivilianApp: React.FC<CivilianAppProps> = ({
 
   const [liveNotifications, setLiveNotifications] =
     useState<SystemNotification[]>(notifications);
-      /*
+
+  /*
    * Socket.IO connection status.
    * Uses the existing shared Socket.IO connection.
    */
@@ -146,7 +147,8 @@ export const CivilianApp: React.FC<CivilianAppProps> = ({
     autoRerouteRef.current =
       autoRerouteEnabled;
   }, [autoRerouteEnabled]);
-    /*
+
+  /*
    * ============================================================
    * SOCKET.IO CONNECTION STATUS
    * ============================================================
@@ -223,7 +225,6 @@ export const CivilianApp: React.FC<CivilianAppProps> = ({
       );
     };
   }, []);
-
 
   useEffect(() => {
     setLiveRoads(roads);
@@ -1056,162 +1057,202 @@ export const CivilianApp: React.FC<CivilianAppProps> = ({
 
           <div className="space-y-4">
 
-            {/* Route Planner */}
+            {/* ======================================================
+                SERIAL 5 — IMPROVED ROUTE PLANNER UI
+                ====================================================== */}
 
             <form
-              onSubmit={
-                handleRoutePlannerSubmit
-              }
-              className="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-3 shadow-inner relative"
+              onSubmit={handleRoutePlannerSubmit}
+              className="bg-slate-950 rounded-xl border border-slate-800 shadow-inner relative overflow-visible"
             >
 
-              {/* Origin */}
+              {/* Planner Header */}
 
-              <div className="relative">
+              <div className="px-4 pt-4 pb-3 border-b border-slate-800">
 
-                <div className="flex items-center space-x-2 text-xs text-slate-300">
+                <div className="flex items-center justify-between">
 
-                  <MapPin className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                  <div>
 
-                  <input
-                    type="text"
-                    value={origin}
-                    onChange={(e) => {
-                      setOrigin(
-                        e.target.value
-                      );
-                      setShowOriginSuggestions(
-                        true
-                      );
-                    }}
-                    onFocus={() =>
-                      setShowOriginSuggestions(
-                        true
-                      )
-                    }
-                    className="w-full bg-transparent border-b border-slate-800 focus:outline-none focus:border-emerald-500 pb-1 text-white font-semibold"
-                    placeholder="Origin location (e.g. Vijay Nagar Square)"
-                  />
+                    <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-[0.15em]">
+                      Route Planner
+                    </span>
+
+                    <p className="text-[10px] text-slate-500 mt-0.5">
+                      Plan your journey
+                    </p>
+
+                  </div>
+
+                  <Navigation className="w-4 h-4 text-emerald-400" />
 
                 </div>
 
-                {showOriginSuggestions && (
-                  <div className="absolute left-0 right-0 mt-1 bg-slate-900 border border-slate-700 rounded-lg shadow-2xl z-50 max-h-36 overflow-y-auto divide-y divide-slate-800 text-xs">
-
-                    {INDORE_HUBS
-                      .filter((h) =>
-                        h
-                          .toLowerCase()
-                          .includes(
-                            origin.toLowerCase()
-                          )
-                      )
-                      .map(
-                        (
-                          hub,
-                          idx
-                        ) => (
-                          <div
-                            key={idx}
-                            onClick={() =>
-                              handleSelectOrigin(
-                                hub
-                              )
-                            }
-                            className="p-2 hover:bg-slate-800 cursor-pointer text-white"
-                          >
-                            {hub}
-                          </div>
-                        )
-                      )}
-
-                  </div>
-                )}
-
               </div>
 
-              {/* Destination */}
+              {/* From / To */}
 
-              <div className="relative">
+              <div className="px-4 pt-4">
 
-                <div className="flex items-center space-x-2 text-xs text-slate-300">
+                <div className="relative">
 
-                  <Navigation className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                  {/* Connecting Line */}
 
-                  <input
-                    type="text"
-                    value={destination}
-                    onChange={(e) => {
-                      setDestination(
-                        e.target.value
-                      );
-                      setShowDestSuggestions(
-                        true
-                      );
-                    }}
-                    onFocus={() =>
-                      setShowDestSuggestions(
-                        true
-                      )
-                    }
-                    className="w-full bg-transparent border-b border-slate-800 focus:outline-none focus:border-blue-500 pb-1 text-white font-semibold"
-                    placeholder="Destination location (e.g. Rajwada)"
-                  />
+                  <div className="absolute left-[7px] top-[22px] bottom-[22px] w-px bg-slate-700" />
+
+                  {/* Origin */}
+
+                  <div className="relative flex items-start gap-3">
+
+                    <div className="relative z-10 mt-1 w-4 h-4 rounded-full border-2 border-emerald-400 bg-slate-950 flex-shrink-0" />
+
+                    <div className="relative flex-1">
+
+                      <label className="block text-[9px] font-bold uppercase tracking-wider text-emerald-400 mb-1">
+                        From
+                      </label>
+
+                      <input
+                        type="text"
+                        value={origin}
+                        onChange={(e) => {
+                          setOrigin(e.target.value);
+                          setShowOriginSuggestions(true);
+                        }}
+                        onFocus={() =>
+                          setShowOriginSuggestions(true)
+                        }
+                        className="w-full bg-slate-900 border border-slate-800 focus:border-emerald-500 rounded-lg px-3 py-2 text-xs text-white font-semibold focus:outline-none transition"
+                        placeholder="Starting location"
+                      />
+
+                      {showOriginSuggestions && (
+                        <div className="absolute left-0 right-0 mt-1 bg-slate-900 border border-slate-700 rounded-lg shadow-2xl z-[60] max-h-36 overflow-y-auto divide-y divide-slate-800 text-xs">
+
+                          {INDORE_HUBS
+                            .filter((h) =>
+                              h
+                                .toLowerCase()
+                                .includes(
+                                  origin.toLowerCase()
+                                )
+                            )
+                            .map((hub, idx) => (
+                              <button
+                                key={idx}
+                                type="button"
+                                onClick={() =>
+                                  handleSelectOrigin(hub)
+                                }
+                                className="w-full text-left p-2 hover:bg-slate-800 cursor-pointer text-white transition"
+                              >
+                                {hub}
+                              </button>
+                            ))}
+
+                        </div>
+                      )}
+
+                    </div>
+
+                  </div>
+
+                  {/* Destination */}
+
+                  <div className="relative flex items-start gap-3 mt-4">
+
+                    <div className="relative z-10 mt-1 w-4 h-4 rounded-full border-2 border-blue-400 bg-slate-950 flex-shrink-0" />
+
+                    <div className="relative flex-1">
+
+                      <label className="block text-[9px] font-bold uppercase tracking-wider text-blue-400 mb-1">
+                        To
+                      </label>
+
+                      <input
+                        type="text"
+                        value={destination}
+                        onChange={(e) => {
+                          setDestination(e.target.value);
+                          setShowDestSuggestions(true);
+                        }}
+                        onFocus={() =>
+                          setShowDestSuggestions(true)
+                        }
+                        className="w-full bg-slate-900 border border-slate-800 focus:border-blue-500 rounded-lg px-3 py-2 text-xs text-white font-semibold focus:outline-none transition"
+                        placeholder="Destination"
+                      />
+
+                      {showDestSuggestions && (
+                        <div className="absolute left-0 right-0 mt-1 bg-slate-900 border border-slate-700 rounded-lg shadow-2xl z-[60] max-h-36 overflow-y-auto divide-y divide-slate-800 text-xs">
+
+                          {INDORE_HUBS
+                            .filter((h) =>
+                              h
+                                .toLowerCase()
+                                .includes(
+                                  destination.toLowerCase()
+                                )
+                            )
+                            .map((hub, idx) => (
+                              <button
+                                key={idx}
+                                type="button"
+                                onClick={() =>
+                                  handleSelectDest(hub)
+                                }
+                                className="w-full text-left p-2 hover:bg-slate-800 cursor-pointer text-white transition"
+                              >
+                                {hub}
+                              </button>
+                            ))}
+
+                        </div>
+                      )}
+
+                    </div>
+
+                  </div>
 
                 </div>
 
-                {showDestSuggestions && (
-                  <div className="absolute left-0 right-0 mt-1 bg-slate-900 border border-slate-700 rounded-lg shadow-2xl z-50 max-h-36 overflow-y-auto divide-y divide-slate-800 text-xs">
-
-                    {INDORE_HUBS
-                      .filter((h) =>
-                        h
-                          .toLowerCase()
-                          .includes(
-                            destination.toLowerCase()
-                          )
-                      )
-                      .map(
-                        (
-                          hub,
-                          idx
-                        ) => (
-                          <div
-                            key={idx}
-                            onClick={() =>
-                              handleSelectDest(
-                                hub
-                              )
-                            }
-                            className="p-2 hover:bg-slate-800 cursor-pointer text-white"
-                          >
-                            {hub}
-                          </div>
-                        )
-                      )}
-
-                  </div>
-                )}
-
               </div>
 
-              <button
-                type="submit"
-                disabled={
-                  loadingDirections
-                }
-                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-2 rounded-lg shadow transition flex items-center justify-center space-x-2 uppercase"
-              >
+              {/* Calculate Route */}
 
-                <Search className="w-3.5 h-3.5" />
+              <div className="px-4 pt-4 pb-4">
 
-                <span>
-                  {loadingDirections
-                    ? 'Calculating Live Route...'
-                    : 'Find Optimal Route'}
-                </span>
+                <button
+                  type="submit"
+                  disabled={
+                    loadingDirections ||
+                    !origin.trim() ||
+                    !destination.trim()
+                  }
+                  className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-white font-bold text-xs py-2.5 rounded-lg shadow transition flex items-center justify-center gap-2 uppercase tracking-wide"
+                >
 
-              </button>
+                  {loadingDirections ? (
+                    <>
+                      <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+
+                      <span>
+                        Calculating Live Route...
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <Search className="w-3.5 h-3.5" />
+
+                      <span>
+                        Find Optimal Route
+                      </span>
+                    </>
+                  )}
+
+                </button>
+
+              </div>
 
             </form>
 
